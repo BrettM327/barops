@@ -185,7 +185,8 @@ select option{background:var(--surface2);}
     <div><div class="page-title">Event Calculator</div><div class="page-subtitle">Full drink math, shopping list, profit — all auto-calculated</div></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-secondary" onclick="clearCalc()">Clear</button>
-      <button class="btn btn-primary" onclick="generatePDF()">📄 PDF Summary</button>
+      <button class="btn btn-secondary" onclick="generateClientPDF()">🛒 Client Shopping List</button>
+      <button class="btn btn-primary" onclick="generatePDF()">📄 Internal PDF</button>
     </div>
   </div>
 
@@ -228,7 +229,7 @@ select option{background:var(--surface2);}
         <div class="form-section-title">Drink Menu — Popularity % & Bottle Calculation</div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Popularity % must total 100%. Each spirit's oz per serving comes from Settings.</div>
         <div id="drink-menu-list"></div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkToMenu()">+ Add Spirit/Drink</button>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkToMenu()">+ Add Cocktail</button>
         <div id="pct-warning" style="color:var(--danger);font-size:12px;margin-top:8px;display:none;">⚠ Percentages must total 100%</div>
       </div>
 
@@ -591,6 +592,15 @@ select option{background:var(--surface2);}
   </div>
 </div>
 
+<!-- CLIENT SHOPPING LIST PDF -->
+<div id="client-pdf-preview" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:155;overflow-y:auto;padding:20px;flex-direction:column;align-items:center;">
+  <div id="client-pdf-actions" style="display:flex;gap:10px;margin-bottom:16px;">
+    <button class="btn btn-primary" onclick="printClientPDF()">🖨 Print / Save as PDF</button>
+    <button class="btn btn-secondary" onclick="closeClientPDF()">✕ Close</button>
+  </div>
+  <div id="client-pdf-content" style="background:#fff;color:#111;width:100%;max-width:820px;border-radius:8px;overflow:hidden;font-family:'Georgia',serif;line-height:1.6;"></div>
+</div>
+
 <!-- PDF PREVIEW -->
 <div id="pdf-preview">
   <div id="pdf-preview-actions">
@@ -622,20 +632,46 @@ let DB = {
       {id:'sl8',name:'Beer',oz:12,bottleSizes:[355]}
     ],
     recipes:[
-      {id:'r1',name:'Margarita',spiritId:'sl1',ingredients:[
-        {name:'Tequila',qty:2,unit:'oz'},{name:'Triple Sec',qty:0.75,unit:'oz'},
-        {name:'Lime Juice',qty:1,unit:'oz'},{name:'Agave Syrup',qty:0.5,unit:'oz'},
-        {name:'Salt (rim)',qty:1,unit:'pinch'},{name:'Lime Wedge',qty:1,unit:'pc'}
-      ]},
-      {id:'r2',name:'Vodka Soda',spiritId:'sl2',ingredients:[
-        {name:'Vodka',qty:2,unit:'oz'},{name:'Soda Water',qty:4,unit:'oz'},
-        {name:'Lime Wedge',qty:1,unit:'pc'}
-      ]},
-      {id:'r3',name:'Whiskey Sour',spiritId:'sl3',ingredients:[
-        {name:'Whiskey',qty:2,unit:'oz'},{name:'Lemon Juice',qty:1,unit:'oz'},
-        {name:'Simple Syrup',qty:0.75,unit:'oz'},{name:'Egg White',qty:0.5,unit:'oz'},
-        {name:'Cherry',qty:1,unit:'pc'}
-      ]}
+      {id:'r1',name:'Margarita',
+        alcoholicIngredients:[
+          {spiritId:'sl1',name:'Tequila',qty:2,unit:'oz',bottleSize:750},
+          {spiritId:'',name:'Triple Sec',qty:0.75,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Lime Juice',qty:1,unit:'oz'},{name:'Agave Syrup',qty:0.5,unit:'oz'},
+          {name:'Salt (rim)',qty:2,unit:'g'},{name:'Lime Wedge',qty:1,unit:'pc'}
+        ]
+      },
+      {id:'r2',name:'Vodka Soda',
+        alcoholicIngredients:[
+          {spiritId:'sl2',name:'Vodka',qty:2,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Soda Water',qty:4,unit:'oz'},{name:'Lime Wedge',qty:1,unit:'pc'}
+        ]
+      },
+      {id:'r3',name:'Whiskey Sour',
+        alcoholicIngredients:[
+          {spiritId:'sl3',name:'Whiskey',qty:2,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Lemon Juice',qty:1,unit:'oz'},{name:'Simple Syrup',qty:0.75,unit:'oz'},
+          {name:'Egg White',qty:0.5,unit:'oz'},{name:'Cherry',qty:1,unit:'pc'}
+        ]
+      },
+      {id:'r4',name:'Long Island Iced Tea',
+        alcoholicIngredients:[
+          {spiritId:'sl2',name:'Vodka',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl1',name:'Tequila',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl5',name:'Rum',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl4',name:'Gin',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'',name:'Triple Sec',qty:0.5,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Sour Mix',qty:1,unit:'oz'},{name:'Cola',qty:2,unit:'oz'},
+          {name:'Lemon Wedge',qty:1,unit:'pc'}
+        ]
+      }
     ],
     staticCosts:[
       {id:'sc1',name:'Plastic Cups',costPerGuest:0.50},
@@ -839,48 +875,59 @@ function initCalc(){
   document.getElementById('calc-price-adult').value=DB.settings.priceAdult;
   document.getElementById('calc-price-kid').value=DB.settings.priceKid;
   // Default menu from spirits library
-  const lib=DB.settings.spiritsLibrary||[];
-  if(lib.length>=3){
+  const recipes=DB.settings.recipes||[];
+  if(recipes.length>=2){
     calcMenu=[
-      {spiritId:lib[0].id,pct:50,bottleSize:750},
-      {spiritId:lib[1].id,pct:30,bottleSize:750},
-      {spiritId:lib[2].id,pct:20,bottleSize:750}
+      {recipeId:recipes[0].id,pct:50},
+      {recipeId:recipes[1].id,pct:30},
+      {recipeId:recipes[2]?.id||recipes[0].id,pct:20}
     ];
-  }else if(lib.length>0){
-    calcMenu=[{spiritId:lib[0].id,pct:100,bottleSize:750}];
+  }else if(recipes.length>0){
+    calcMenu=[{recipeId:recipes[0].id,pct:100}];
+  }else{
+    calcMenu=[];
   }
   calcLabor=[];
   renderDrinkMenu();renderLaborList();recalc();
 }
 
 function addDrinkToMenu(){
-  const lib=DB.settings.spiritsLibrary||[];
-  if(!lib.length){toast('Add spirits in Settings first.');return;}
-  calcMenu.push({spiritId:lib[0].id,pct:0,bottleSize:750});
+  const recipes=DB.settings.recipes||[];
+  if(!recipes.length){toast('Add cocktail recipes in Settings first.');return;}
+  calcMenu.push({recipeId:recipes[0].id,pct:0});
   renderDrinkMenu();recalc();
 }
 function removeDrinkFromMenu(i){calcMenu.splice(i,1);renderDrinkMenu();recalc();}
 
 function renderDrinkMenu(){
+  const recipes=DB.settings.recipes||[];
   const lib=DB.settings.spiritsLibrary||[];
-  const spiritOptions=lib.map(s=>`<option value="${s.id}">${s.name} (${s.oz}oz/serving)</option>`).join('');
+  if(!recipes.length){
+    document.getElementById('drink-menu-list').innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add cocktail recipes in Settings first.</div>`;
+    return;
+  }
+  const recipeOptions=recipes.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
   document.getElementById('drink-menu-list').innerHTML=calcMenu.map((row,i)=>{
-    const spirit=lib.find(s=>s.id===row.spiritId)||lib[0]||{};
-    const bottleSizes=(spirit.bottleSizes||[750]).map(bs=>`<option value="${bs}" ${bs===row.bottleSize?'selected':''}>${bs===750?'750ml':bs===1750?'1.75L (Handle)':bs===1000?'1L':bs+'ml'}</option>`).join('');
-    return `<div class="inline-row" style="grid-template-columns:2fr 80px 140px auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
-      <div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Spirit / Drink</div>
-        <select onchange="calcMenu[${i}].spiritId=this.value;renderDrinkMenu();recalc()">${spiritOptions.replace(`value="${row.spiritId}"`,`value="${row.spiritId}" selected`)}</select>
+    const recipe=recipes.find(r=>r.id===row.recipeId)||recipes[0];
+    const spirits=(recipe.alcoholicIngredients||[]).filter(ai=>ai.spiritId).map(ai=>{
+      const sp=lib.find(s=>s.id===ai.spiritId);
+      return sp?`${sp.name} ${ai.qty}oz`:'';
+    }).filter(Boolean).join(', ');
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+      <div style="display:grid;grid-template-columns:2fr 90px auto;gap:8px;align-items:center;">
+        <div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail / Recipe</div>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" onchange="calcMenu[${i}].recipeId=this.value;renderDrinkMenu();recalc()">
+            ${recipes.map(r=>`<option value="${r.id}" ${r.id===row.recipeId?'selected':''}>${r.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Popularity %</div>
+          <input type="number" value="${row.pct}" min="0" max="100" placeholder="%" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="calcMenu[${i}].pct=parseFloat(this.value)||0;recalc()"/>
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="removeDrinkFromMenu(${i})">✕</button>
       </div>
-      <div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Pop %</div>
-        <input type="number" value="${row.pct}" min="0" max="100" placeholder="%" oninput="calcMenu[${i}].pct=parseFloat(this.value)||0;recalc()"/>
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Bottle Size</div>
-        <select onchange="calcMenu[${i}].bottleSize=parseInt(this.value);recalc()">${bottleSizes}</select>
-      </div>
-      <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="removeDrinkFromMenu(${i})">✕</button>
+      ${spirits?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px;">🍾 ${spirits}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -893,37 +940,62 @@ function recalc(){
   const priceKid=parseFloat(document.getElementById('calc-price-kid').value)||0;
   const pace=PACE_MAP[calcPace]||1.0;
   const lib=DB.settings.spiritsLibrary||[];
+  const recipes=DB.settings.recipes||[];
 
-  // Revenue
   const revTarget=(adults*priceAdult)+(kids*priceKid);
-
-  // Total adult drinks (kids get soft drinks only, no alcohol calc)
   const totalAdultDrinks=adults*pace*hours;
 
-  // Per-spirit calculations
   const totalPct=calcMenu.reduce((s,r)=>s+r.pct,0);
   const pctOk=Math.abs(totalPct-100)<0.01;
   document.getElementById('pct-warning').style.display=pctOk?'none':'block';
 
+  // Aggregate bottles needed per spirit across ALL recipes on the menu
+  // Key: spiritId+bottleSize -> {spirit, bottleSize, totalOzNeeded, bottlesNeeded, cost}
+  const spiritTotals={};
   let drinkRows=[];
-  let totalBottleCost=0;
+
   calcMenu.forEach(row=>{
-    const spirit=lib.find(s=>s.id===row.spiritId);
-    if(!spirit)return;
-    const drinksForSpirit=totalAdultDrinks*(row.pct/100);
-    const ozNeeded=drinksForSpirit*spirit.oz;
-    const bottleSizeOz=row.bottleSize*OZ_PER_ML;
-    const bottlesNeeded=Math.ceil(ozNeeded/bottleSizeOz);
-    // Cost lookup from inventory
-    const invItem=DB.spirits.find(s=>s.name.toLowerCase()===spirit.name.toLowerCase());
+    const recipe=recipes.find(r=>r.id===row.recipeId);
+    if(!recipe)return;
+    const drinksForCocktail=totalAdultDrinks*(row.pct/100); // float, used for oz math
+    const drinksDisplay=Math.ceil(drinksForCocktail);
+
+    // For each alcoholic ingredient in this recipe
+    const spiritBreakdown=[];
+    (recipe.alcoholicIngredients||[]).forEach(ai=>{
+      if(!ai.spiritId)return; // non-library spirit (Triple Sec etc) — goes to shopping list only
+      const sp=lib.find(s=>s.id===ai.spiritId);
+      if(!sp)return;
+      const ozNeeded=drinksForCocktail*ai.qty; // total oz needed for this spirit for this cocktail
+      const bSize=ai.bottleSize||750;
+      const bottleSizeOz=bSize*OZ_PER_ML;
+      const key=ai.spiritId+'_'+bSize;
+      if(!spiritTotals[key]){
+        spiritTotals[key]={spirit:sp,bottleSize:bSize,totalOzNeeded:0};
+      }
+      spiritTotals[key].totalOzNeeded+=ozNeeded;
+      spiritBreakdown.push({name:sp.name,qty:ai.qty,unit:'oz'});
+    });
+
+    drinkRows.push({recipe,row,drinksDisplay,spiritBreakdown});
+  });
+
+  // Now compute bottles (Math.ceil always) and cost per spirit total
+  let totalBottleCost=0;
+  let totalBottles=0;
+  const bottleSummaryRows=Object.values(spiritTotals).map(st=>{
+    const bottleSizeOz=st.bottleSize*OZ_PER_ML;
+    const bottlesNeeded=Math.ceil(st.totalOzNeeded/bottleSizeOz); // ALWAYS round up
+    const invItem=DB.spirits.find(s=>s.name.toLowerCase()===st.spirit.name.toLowerCase());
     const costPerBottle=invItem?invItem.pkgPrice/invItem.units:0;
     const spiritCost=bottlesNeeded*costPerBottle;
     totalBottleCost+=spiritCost;
-    drinkRows.push({spirit,row,drinksForSpirit:Math.ceil(drinksForSpirit),ozNeeded:ozNeeded.toFixed(1),bottlesNeeded,bottleSizeOz:row.bottleSize,costPerBottle,spiritCost});
+    totalBottles+=bottlesNeeded;
+    return{...st,bottlesNeeded,costPerBottle,spiritCost,ozNeeded:st.totalOzNeeded.toFixed(1)};
   });
 
-  // Shopping list (recipe ingredients)
-  renderShoppingList(drinkRows,adults,kids,hours,pace);
+  // Shopping list
+  renderShoppingList(calcMenu,recipes,lib,totalAdultDrinks);
 
   // Static costs
   const totalGuests=adults+kids;
@@ -933,48 +1005,58 @@ function recalc(){
   });
   renderStaticCostsCalc(staticRows,totalGuests);
 
-  // Labor
   const laborCost=calcLabor.reduce((s,l)=>s+l.hours*l.rate,0);
-
   const totalCost=totalBottleCost+staticTotal+laborCost;
   const profit=revTarget-totalCost;
   const margin=revTarget>0?((profit/revTarget)*100).toFixed(1):0;
-  const totalBottles=drinkRows.reduce((s,r)=>s+r.bottlesNeeded,0);
 
-  // Summary panel
-  const row=(label,val,col)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+  const summRow=(label,val,col)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
     <span style="color:var(--text-muted);font-size:13px;">${label}</span>
     <span style="font-family:'DM Mono',monospace;font-size:13px;color:${col||'var(--text)'};">${val}</span></div>`;
 
-  let spiritSummary=drinkRows.map(r=>`
+  // Cocktail drink count summary
+  const cocktailLines=drinkRows.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(42,48,48,.4);">
+      <span style="font-size:12px;color:var(--text);">${r.recipe.name}</span>
+      <span style="font-size:12px;color:var(--text-muted);">${r.row.pct}% · <strong style="color:var(--text);">${r.drinksDisplay} drinks</strong></span>
+    </div>`).join('');
+
+  // Per-spirit bottle summary
+  const bottleLines=bottleSummaryRows.map(r=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(42,48,48,.4);">
-      <div><span style="color:var(--text);font-size:13px;">${r.spirit.name}</span><span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${r.row.pct}% · ${r.spirit.oz}oz · ${r.row.bottleSize}ml btl</span></div>
+      <div>
+        <span style="color:var(--text);font-size:13px;">${r.spirit.name}</span>
+        <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${r.ozNeeded}oz needed · ${r.bottleSize}ml btl</span>
+      </div>
       <div style="text-align:right;">
         <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px;font-weight:600;">${r.bottlesNeeded} btl</span>
-        ${r.costPerBottle>0?`<div style="font-size:11px;color:var(--text-muted)">${fc(r.spiritCost)}</div>`:''}
+        ${r.costPerBottle>0?`<div style="font-size:11px;color:var(--text-muted);">${fc(r.spiritCost)}</div>`:''}
       </div>
     </div>`).join('');
 
   document.getElementById('calc-summary').innerHTML=`
-    ${row('Adults',adults)}
-    ${row('Kids',kids)}
-    ${row('Pace',PACE_MAP[calcPace]+' drinks/hr')}
-    ${row('Hours',hours+'h')}
-    ${row('Total Adult Drinks',Math.ceil(totalAdultDrinks))}
+    ${summRow('Adults',adults)}
+    ${summRow('Kids',kids)}
+    ${summRow('Pace',PACE_MAP[calcPace]+' drinks/hr')}
+    ${summRow('Hours',hours+'h')}
+    ${summRow('Total Adult Drinks',Math.ceil(totalAdultDrinks))}
     <div class="divider" style="margin:10px 0;"></div>
-    <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Bottles Needed</div>
-    ${spiritSummary}
-    <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:2px;">
-      <span style="font-size:13px;font-weight:600;">Total Bottles</span>
-      <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:15px;font-weight:700;">${totalBottles}</span>
+    <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Cocktail Breakdown</div>
+    ${cocktailLines||'<div style="color:var(--text-muted);font-size:12px;">No cocktails added.</div>'}
+    <div class="divider" style="margin:10px 0;"></div>
+    <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Bottles Needed <span style="color:var(--text-muted);font-weight:400;">(always rounded up)</span></div>
+    ${bottleLines||'<div style="color:var(--text-muted);font-size:12px;">No spirits linked yet.</div>'}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:2px;font-weight:600;">
+      <span>Total Bottles</span>
+      <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:15px;">${totalBottles}</span>
     </div>
     <div class="divider" style="margin:10px 0;"></div>
     <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Financials</div>
-    ${row('Revenue',fc(revTarget),'var(--accent)')}
-    ${row('Spirits Cost',fc(totalBottleCost),'var(--danger)')}
-    ${row('Static Costs',fc(staticTotal),'var(--danger)')}
-    ${row('Labor Cost',fc(laborCost),'var(--danger)')}
-    ${row('Total Costs',fc(totalCost),'var(--danger)')}
+    ${summRow('Revenue',fc(revTarget),'var(--accent)')}
+    ${summRow('Spirits Cost',fc(totalBottleCost),'var(--danger)')}
+    ${summRow('Static Costs',fc(staticTotal),'var(--danger)')}
+    ${summRow('Labor Cost',fc(laborCost),'var(--danger)')}
+    ${summRow('Total Costs',fc(totalCost),'var(--danger)')}
     <div style="background:rgba(92,187,140,.08);border:1px solid rgba(92,187,140,.2);border-radius:10px;padding:14px;margin-top:10px;">
       <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Event Profit</div>
       <div style="font-size:30px;font-weight:700;font-family:'DM Mono',monospace;color:${profit>=0?'var(--success)':'var(--danger)'};">${fc(profit)}</div>
@@ -985,34 +1067,37 @@ function recalc(){
       <div class="stat-card" style="padding:10px 12px;"><div class="stat-label">Total Guests</div><div class="stat-value" style="font-size:18px;">${totalGuests}</div></div>
     </div>`;
 
-  // Store for PDF
-  window._calcState={adults,kids,hours,priceAdult,priceKid,pace,revTarget,totalAdultDrinks,drinkRows,totalBottles,totalBottleCost,staticRows,staticTotal,laborCost,totalCost,profit,margin,totalGuests};
+  window._calcState={adults,kids,hours,priceAdult,priceKid,pace,revTarget,totalAdultDrinks,drinkRows,bottleSummaryRows,totalBottles,totalBottleCost,staticRows,staticTotal,laborCost,totalCost,profit,margin,totalGuests};
 }
 
-function renderShoppingList(drinkRows,adults,kids,hours,pace){
-  const recipes=DB.settings.recipes||[];
-  // Aggregate all ingredients across all drinks
+function renderShoppingList(calcMenuRows,recipes,lib,totalAdultDrinks){
+  // Aggregate all mixers/garnishes AND non-library alcoholic ingredients
   const aggregate={};
-  drinkRows.forEach(dr=>{
-    // find matching recipe by spiritId
-    const recipe=recipes.find(r=>r.spiritId===dr.row.spiritId);
+  const addToAgg=(name,qty,unit,numDrinks)=>{
+    const key=name.toLowerCase()+'__'+unit;
+    if(!aggregate[key])aggregate[key]={name,unit,qty:0};
+    aggregate[key].qty+=qty*numDrinks;
+  };
+
+  calcMenuRows.forEach(row=>{
+    const recipe=recipes.find(r=>r.id===row.recipeId);
     if(!recipe)return;
-    const numDrinks=dr.drinksForSpirit;
-    recipe.ingredients.forEach(ing=>{
-      const key=ing.name+'__'+ing.unit;
-      if(!aggregate[key])aggregate[key]={name:ing.name,unit:ing.unit,qty:0};
-      aggregate[key].qty+=ing.qty*numDrinks;
-    });
+    const numDrinks=totalAdultDrinks*(row.pct/100);
+    // Mixers & garnishes
+    (recipe.mixersGarnishes||[]).forEach(ing=>addToAgg(ing.name,ing.qty,ing.unit,numDrinks));
+    // Non-library alcoholic ingredients (e.g. Triple Sec — no spiritId)
+    (recipe.alcoholicIngredients||[]).filter(ai=>!ai.spiritId).forEach(ai=>addToAgg(ai.name,ai.qty,ai.unit,numDrinks));
   });
 
   const items=Object.values(aggregate);
   const el=document.getElementById('shopping-list-output');
-  if(!items.length){el.innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add recipes in Settings to see a shopping list here.</div>`;return;}
+  if(!items.length){el.innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add recipes with mixers &amp; garnishes in Settings to see your shopping list here.</div>`;return;}
 
+  const fmtQty=q=>q%1===0?q:q.toFixed(1);
   el.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;">
     ${items.map(it=>`<div class="shop-item">
       <span style="font-size:13px;">${it.name}</span>
-      <span class="shop-qty">${it.qty%1===0?it.qty:it.qty.toFixed(1)} ${it.unit}</span>
+      <span class="shop-qty">${fmtQty(it.qty)} ${it.unit}</span>
     </div>`).join('')}
   </div>`;
 }
@@ -1069,29 +1154,30 @@ function generatePDF(){
   const biz=DB.settings.bizName||'BarOps';
   const owner=DB.settings.ownerName||'';
 
-  const spiritRows=(st.drinkRows||[]).map(r=>`<tr>
-    <td>${r.spirit.name}</td><td>${r.row.pct}%</td>
-    <td>${r.drinksForSpirit}</td><td>${r.spirit.oz} oz</td>
-    <td>${r.row.bottleSize}ml</td><td><strong>${r.bottlesNeeded}</strong></td>
+  const spiritRows=(st.bottleSummaryRows||[]).map(r=>`<tr>
+    <td>${r.spirit.name}</td>
+    <td>${r.ozNeeded} oz needed</td>
+    <td>${r.bottleSize}ml</td>
+    <td><strong>${r.bottlesNeeded}</strong> <span style="font-size:10px;color:#888;">(rounded up)</span></td>
     ${r.costPerBottle>0?`<td>${fc(r.spiritCost)}</td>`:'<td>—</td>'}
   </tr>`).join('');
 
-  // Shopping list from current render
+  // Shopping list
   const recipes=DB.settings.recipes||[];
-  const aggregate={};
-  (st.drinkRows||[]).forEach(dr=>{
-    const recipe=recipes.find(r=>r.spiritId===dr.row.spiritId);
-    if(!recipe)return;
-    recipe.ingredients.forEach(ing=>{
-      const key=ing.name+'__'+ing.unit;
-      if(!aggregate[key])aggregate[key]={name:ing.name,unit:ing.unit,qty:0};
-      aggregate[key].qty+=ing.qty*dr.drinksForSpirit;
-    });
+  const lib2=DB.settings.spiritsLibrary||[];
+  const agg2={};
+  const addA=(name,qty,unit,n)=>{const k=name.toLowerCase()+'__'+unit;if(!agg2[k])agg2[k]={name,unit,qty:0};agg2[k].qty+=qty*n;};
+  (calcMenu||[]).forEach(row=>{
+    const recipe=recipes.find(r=>r.id===row.recipeId);if(!recipe)return;
+    const n=(st.totalAdultDrinks||0)*(row.pct/100);
+    (recipe.mixersGarnishes||[]).forEach(mg=>addA(mg.name,mg.qty,mg.unit,n));
+    (recipe.alcoholicIngredients||[]).filter(ai=>!ai.spiritId).forEach(ai=>addA(ai.name,ai.qty,ai.unit,n));
   });
-  const shopItems=Object.values(aggregate);
-  const shopRows=shopItems.map(it=>`<tr><td>${it.name}</td><td><strong>${it.qty%1===0?it.qty:it.qty.toFixed(1)} ${it.unit}</strong></td></tr>`).join('');
-  const staticRows=(st.staticRows||[]).map(r=>`<tr><td>${r.name}</td><td>${fc(r.costPerGuest)}/guest</td><td>${fc(r.cost)}</td></tr>`).join('');
-  const laborRows=(calcLabor.length?calcLabor:[ ]).map(l=>`<tr><td>${l.role}</td><td>${l.hours}h @ $${l.rate}/hr</td><td>${fc(l.hours*l.rate)}</td></tr>`).join('');
+  const shopItems=Object.values(agg2);
+  const fmtQ=q=>q%1===0?q:q.toFixed(1);
+  const shopRows=shopItems.map(it=>`<tr><td>${it.name}</td><td><strong>${fmtQ(it.qty)} ${it.unit}</strong></td></tr>`).join('');
+  const staticPdfRows=(st.staticRows||[]).map(r=>`<tr><td>${r.name}</td><td>${fc(r.costPerGuest)}/guest</td><td>${fc(r.cost)}</td></tr>`).join('');
+  const laborRows=(calcLabor.length?calcLabor:[]).map(l=>`<tr><td>${l.role}</td><td>${l.hours}h @ $${l.rate}/hr</td><td>${fc(l.hours*l.rate)}</td></tr>`).join('');
 
   document.getElementById('pdf-content').innerHTML=`
     <h1>${biz}</h1>
@@ -1104,15 +1190,15 @@ function generatePDF(){
         <tr><td><strong>Drinking Pace</strong></td><td>${PACE_MAP[calcPace]} drinks/hr</td><td><strong>Total Adult Drinks</strong></td><td>${Math.ceil(st.totalAdultDrinks||0)}</td></tr>
       </tbody></table>
     </div>
-    <div class="pdf-section"><h2>Bottle Requirements</h2>
-      <table><thead><tr><th>Spirit</th><th>Popularity</th><th>Drinks</th><th>Oz/Serving</th><th>Bottle Size</th><th>Bottles Needed</th><th>Est. Cost</th></tr></thead>
+    <div class="pdf-section"><h2>Bottle Requirements (always rounded up)</h2>
+      <table><thead><tr><th>Spirit</th><th>Oz Needed</th><th>Bottle Size</th><th>Bottles to Buy</th><th>Est. Cost</th></tr></thead>
       <tbody>${spiritRows}</tbody></table>
     </div>
-    ${shopItems.length?`<div class="pdf-section"><h2>Shopping List — Mixers &amp; Ingredients</h2>
+    ${shopItems.length?`<div class="pdf-section"><h2>Shopping List — Mixers &amp; Garnishes</h2>
       <table><thead><tr><th>Ingredient</th><th>Total Needed</th></tr></thead><tbody>${shopRows}</tbody></table>
     </div>`:''}
     ${(st.staticRows||[]).length?`<div class="pdf-section"><h2>Static Per-Guest Costs</h2>
-      <table><thead><tr><th>Item</th><th>Per Guest</th><th>Total (${st.totalGuests||0} guests)</th></tr></thead><tbody>${staticRows}</tbody></table>
+      <table><thead><tr><th>Item</th><th>Per Guest</th><th>Total (${st.totalGuests||0} guests)</th></tr></thead><tbody>${staticPdfRows}</tbody></table>
     </div>`:''}
     ${calcLabor.length?`<div class="pdf-section"><h2>Labor</h2>
       <table><thead><tr><th>Role</th><th>Hours &amp; Rate</th><th>Cost</th></tr></thead><tbody>${laborRows}</tbody></table>
@@ -1141,6 +1227,205 @@ function generatePDF(){
   document.getElementById('pdf-preview').classList.add('open');
 }
 function closePDF(){document.getElementById('pdf-preview').classList.remove('open');}
+function closeClientPDF(){
+  const el=document.getElementById('client-pdf-preview');
+  el.style.display='none';
+}
+function printClientPDF(){window.print();}
+
+// ================================================================
+// CLIENT SHOPPING LIST PDF
+// ================================================================
+function generateClientPDF(){
+  const st=window._calcState||{};
+  const client=document.getElementById('calc-client').value||'Valued Client';
+  const date=document.getElementById('calc-date').value;
+  const type=document.getElementById('calc-type').value;
+  const biz=DB.settings.bizName||'BarOps';
+  const owner=DB.settings.ownerName||'';
+  const phone=DB.settings.phone||'';
+  const email=DB.settings.email||'';
+  const totalGuests=(st.adults||0)+(st.kids||0);
+  const fmtQ=q=>q%1===0?q:q.toFixed(1);
+
+  // --- SPIRITS: humanized bottle lines ---
+  const spiritLines=(st.bottleSummaryRows||[]).map(r=>{
+    const sizeLabel=r.bottleSize===750?'750ml':r.bottleSize===1750?'1.75L':r.bottleSize===1000?'1L':(r.bottleSize+'ml');
+    const costStr=r.costPerBottle>0?` &nbsp;<span style="color:#888;font-size:12px;">(${fc(r.spiritCost)})</span>`:'';
+    return`<tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;">
+        <div style="font-size:16px;font-weight:600;color:#1a1a1a;">${r.bottlesNeeded} × ${r.spirit.name}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">${sizeLabel} bottles${costStr}</div>
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;text-align:right;vertical-align:top;">
+        <span style="font-size:22px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${r.bottlesNeeded}</span>
+        <div style="font-size:11px;color:#aaa;">bottles</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // --- MIXERS & GARNISHES ---
+  const recipes=DB.settings.recipes||[];
+  const agg={};
+  const addA=(name,qty,unit,n)=>{
+    const k=name.toLowerCase()+'__'+unit;
+    if(!agg[k])agg[k]={name,unit,qty:0};
+    agg[k].qty+=qty*n;
+  };
+  (calcMenu||[]).forEach(row=>{
+    const recipe=recipes.find(r=>r.id===row.recipeId);if(!recipe)return;
+    const n=(st.totalAdultDrinks||0)*(row.pct/100);
+    (recipe.mixersGarnishes||[]).forEach(mg=>addA(mg.name,mg.qty,mg.unit,n));
+    (recipe.alcoholicIngredients||[]).filter(ai=>!ai.spiritId).forEach(ai=>addA(ai.name,ai.qty,ai.unit,n));
+  });
+  const mixerItems=Object.values(agg);
+  const mixerLines=mixerItems.map(it=>`<tr>
+    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;">
+      <span style="font-size:15px;font-weight:500;color:#1a1a1a;">${it.name}</span>
+    </td>
+    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
+      <span style="font-size:16px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
+      <span style="font-size:12px;color:#888;margin-left:4px;">${it.unit}</span>
+    </td>
+  </tr>`).join('');
+
+  // --- STATIC ITEMS ---
+  const staticLines=(st.staticRows||[]).map(r=>`<tr>
+    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;">
+      <span style="font-size:15px;font-weight:500;color:#1a1a1a;">${r.name}</span>
+      <span style="font-size:12px;color:#aaa;margin-left:8px;">${fc(r.costPerGuest)}/guest × ${totalGuests}</span>
+    </td>
+    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
+      <span style="font-size:14px;font-weight:600;color:#555;font-family:'DM Mono',monospace;">${fc(r.cost)}</span>
+    </td>
+  </tr>`).join('');
+
+  // --- COCKTAIL MENU ---
+  const cocktailMenuLines=(calcMenu||[]).map(row=>{
+    const recipe=recipes.find(r=>r.id===row.recipeId);if(!recipe)return'';
+    const alcoholStr=(recipe.alcoholicIngredients||[]).map(ai=>ai.name).filter(Boolean).join(', ');
+    const mixerStr=(recipe.mixersGarnishes||[]).map(m=>m.name).filter(Boolean).join(', ');
+    return`<div style="padding:12px 0;border-bottom:1px solid #f0ede8;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span style="font-size:17px;font-weight:600;color:#1a1a1a;">${recipe.name}</span>
+        <span style="font-size:13px;color:#c8a96e;font-weight:600;">${row.pct}% of drinks</span>
+      </div>
+      ${alcoholStr?`<div style="font-size:12px;color:#888;margin-top:3px;">🍾 ${alcoholStr}</div>`:''}
+      ${mixerStr?`<div style="font-size:12px;color:#aaa;margin-top:1px;">🍋 ${mixerStr}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // --- TOTALS ---
+  const totalSpirits=st.totalBottleCost||0;
+  const totalStatic=st.staticTotal||0;
+  const grandTotal=totalSpirits+totalStatic;
+
+  document.getElementById('client-pdf-content').innerHTML=`
+    <style>
+      @media print {
+        body * { visibility: hidden; }
+        #client-pdf-content, #client-pdf-content * { visibility: visible; }
+        #client-pdf-content { position: absolute; left: 0; top: 0; width: 100%; border-radius: 0; }
+        #client-pdf-actions { display: none !important; }
+      }
+      #client-pdf-content { font-family: 'Georgia', serif; }
+      #client-pdf-content * { box-sizing: border-box; }
+    </style>
+
+    <!-- HEADER BAND -->
+    <div style="background:#1a1a1a;padding:36px 48px 28px;color:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c8a96e;margin-bottom:6px;font-family:'DM Sans',sans-serif;">Event Services Proposal</div>
+          <div style="font-size:34px;font-weight:700;letter-spacing:-.01em;">${biz}</div>
+          ${owner?`<div style="font-size:14px;color:#aaa;margin-top:4px;font-family:'DM Sans',sans-serif;">${owner}</div>`:''}
+        </div>
+        <div style="text-align:right;font-family:'DM Sans',sans-serif;">
+          ${phone?`<div style="font-size:13px;color:#ccc;">${phone}</div>`:''}
+          ${email?`<div style="font-size:13px;color:#ccc;">${email}</div>`:''}
+          <div style="font-size:12px;color:#888;margin-top:6px;">Prepared ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOLD ACCENT BAR -->
+    <div style="height:4px;background:linear-gradient(90deg,#c8a96e,#e0c98a,#c8a96e);"></div>
+
+    <!-- EVENT OVERVIEW -->
+    <div style="padding:28px 48px;background:#fdfcfa;border-bottom:1px solid #f0ede8;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:12px;font-family:'DM Sans',sans-serif;">Event Overview</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;">
+        ${[
+          ['Client',client],
+          ['Event Date',fd(date)],
+          ['Event Type',type||'—'],
+          ['Total Guests',totalGuests+' guests'],
+          ['Adults',st.adults||0],
+          ['Kids',st.kids||0],
+          ['Bar Hours',(st.hours||0)+'h service'],
+          ['Est. Drinks',Math.ceil(st.totalAdultDrinks||0)]
+        ].map(([l,v])=>`<div style="padding:10px 0;border-bottom:1px solid #f0ede8;">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#aaa;font-family:'DM Sans',sans-serif;">${l}</div>
+          <div style="font-size:15px;font-weight:600;color:#1a1a1a;margin-top:2px;">${v}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- COCKTAIL MENU -->
+    ${cocktailMenuLines?`<div style="padding:28px 48px;border-bottom:1px solid #eee;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Cocktail Menu</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Serving ${Math.ceil(st.totalAdultDrinks||0)} total drinks across your event</div>
+      ${cocktailMenuLines}
+    </div>`:''}
+
+    <!-- SPIRITS & BOTTLES -->
+    ${spiritLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Spirits &amp; Bottles</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">All quantities rounded up — you'll never run short</div>
+      <table style="width:100%;border-collapse:collapse;">${spiritLines}</table>
+    </div>`:''}
+
+    <!-- MIXERS & GARNISHES -->
+    ${mixerLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers &amp; Garnishes</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Fresh ingredients calculated per drink, per guest</div>
+      <table style="width:100%;border-collapse:collapse;">${mixerLines}</table>
+    </div>`:''}
+
+    <!-- STATIC ITEMS -->
+    ${staticLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Supplies &amp; Essentials</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Per-guest items included in event cost</div>
+      <table style="width:100%;border-collapse:collapse;">${staticLines}</table>
+    </div>`:''}
+
+    <!-- COST SUMMARY -->
+    <div style="padding:28px 48px;background:#fdfcfa;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:16px;font-family:'DM Sans',sans-serif;">Cost Summary</div>
+      <div style="max-width:340px;margin-left:auto;">
+        ${totalSpirits>0?`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;">
+          <span style="color:#555;">Spirits &amp; Bottles</span><span style="font-weight:600;">${fc(totalSpirits)}</span></div>`:''}
+        ${totalStatic>0?`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;">
+          <span style="color:#555;">Supplies &amp; Essentials</span><span style="font-weight:600;">${fc(totalStatic)}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;padding:14px 0 8px;font-family:'DM Sans',sans-serif;">
+          <span style="font-size:16px;font-weight:700;color:#1a1a1a;">Estimated Total</span>
+          <span style="font-size:22px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fc(grandTotal)}</span>
+        </div>
+        <div style="font-size:11px;color:#aaa;font-family:'DM Sans',sans-serif;">Excludes labor and service fees. Final invoice may vary.</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="background:#1a1a1a;padding:20px 48px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:12px;color:#666;font-family:'DM Sans',sans-serif;">Thank you for choosing ${biz}</div>
+      <div style="font-size:11px;color:#444;font-family:'DM Sans',sans-serif;">Generated ${new Date().toLocaleString()}</div>
+    </div>`;
+
+  const preview=document.getElementById('client-pdf-preview');
+  preview.style.display='flex';
+  preview.style.flexDirection='column';
+  preview.style.alignItems='center';
+}
 
 // ================================================================
 // INVENTORY
@@ -1480,34 +1765,59 @@ function renderSettings(){
     </div>`).join('');
 
   // Recipes
+  const UNITS=['oz','ml','cup','tbsp','tsp','g','tsp (level)','tbsp (level)','pc','dash','drop','strip'];
   document.getElementById('recipes-list').innerHTML=(s.recipes||[]).map((r,ri)=>`
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;margin-right:12px;">
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail Name</div>
-            <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.recipes[${ri}].name=this.value"/>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Base Spirit (for calc linking)</div>
-            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" onchange="DB.settings.recipes[${ri}].spiritId=this.value">
-              ${(s.spiritsLibrary||[]).map(sp=>`<option value="${sp.id}" ${sp.id===r.spiritId?'selected':''}>${sp.name}</option>`).join('')}
-            </select>
-          </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="flex:1;margin-right:12px;">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail Name</div>
+          <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;width:100%;font-size:14px;font-weight:600;" oninput="DB.settings.recipes[${ri}].name=this.value"/>
         </div>
         <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes.splice(${ri},1);renderSettings()">Remove Recipe</button>
       </div>
-      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Ingredients per drink</div>
-      ${r.ingredients.map((ing,ii)=>`
-        <div style="display:grid;grid-template-columns:1fr 70px 80px auto;gap:6px;margin-bottom:6px;align-items:center;">
-          <input type="text" value="${ing.name}" placeholder="Ingredient name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;" oninput="DB.settings.recipes[${ri}].ingredients[${ii}].name=this.value"/>
-          <input type="number" value="${ing.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;" oninput="DB.settings.recipes[${ri}].ingredients[${ii}].qty=parseFloat(this.value)||0"/>
-          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;" onchange="DB.settings.recipes[${ri}].ingredients[${ii}].unit=this.value">
-            ${['oz','ml','cup','tbsp','tsp','pinch','pc','dash','g'].map(u=>`<option ${u===ing.unit?'selected':''}>${u}</option>`).join('')}
+
+      <!-- ALCOHOLIC INGREDIENTS -->
+      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">🍾 Alcoholic Ingredients</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Link each spirit to your Spirits Library so bottles calculate automatically. Leave "Library Spirit" blank for liqueurs like Triple Sec.</div>
+      ${(r.alcoholicIngredients||[]).map((ai,ii)=>`
+        <div style="display:grid;grid-template-columns:140px 1fr 70px 80px 120px auto;gap:6px;margin-bottom:6px;align-items:center;">
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Library Spirit</div>
+            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].spiritId=this.value">
+              <option value="">— none —</option>
+              ${(s.spiritsLibrary||[]).map(sp=>`<option value="${sp.id}" ${sp.id===ai.spiritId?'selected':''}>${sp.name}</option>`).join('')}
+            </select>
+          </div>
+          <input type="text" value="${ai.name}" placeholder="Ingredient label" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].name=this.value"/>
+          <input type="number" value="${ai.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].qty=parseFloat(this.value)||0"/>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].unit=this.value">
+            ${UNITS.map(u=>`<option ${u===ai.unit?'selected':''}>${u}</option>`).join('')}
           </select>
-          <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].ingredients.splice(${ii},1);renderSettings()">✕</button>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Bottle Size</div>
+            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].bottleSize=parseInt(this.value)">
+              <option value="750" ${(ai.bottleSize||750)===750?'selected':''}>750ml</option>
+              <option value="1000" ${ai.bottleSize===1000?'selected':''}>1L</option>
+              <option value="1750" ${ai.bottleSize===1750?'selected':''}>1.75L Handle</option>
+              <option value="355" ${ai.bottleSize===355?'selected':''}>355ml</option>
+            </select>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].alcoholicIngredients.splice(${ii},1);renderSettings()">✕</button>
         </div>`).join('')}
-      <button class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="DB.settings.recipes[${ri}].ingredients.push({name:'',qty:1,unit:'oz'});renderSettings()">+ Add Ingredient</button>
+      <button class="btn btn-secondary btn-sm" style="margin-top:4px;margin-bottom:16px;" onclick="DB.settings.recipes[${ri}].alcoholicIngredients.push({spiritId:'',name:'',qty:1,unit:'oz',bottleSize:750});renderSettings()">+ Add Alcoholic Ingredient</button>
+
+      <!-- MIXERS & GARNISHES -->
+      <div style="font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">🍋 Mixers &amp; Garnishes</div>
+      ${(r.mixersGarnishes||[]).map((mg,mi)=>`
+        <div style="display:grid;grid-template-columns:1fr 70px 100px auto;gap:6px;margin-bottom:6px;align-items:center;">
+          <input type="text" value="${mg.name}" placeholder="Ingredient name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].name=this.value"/>
+          <input type="number" value="${mg.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].qty=parseFloat(this.value)||0"/>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].unit=this.value">
+            ${UNITS.map(u=>`<option ${u===mg.unit?'selected':''}>${u}</option>`).join('')}
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].mixersGarnishes.splice(${mi},1);renderSettings()">✕</button>
+        </div>`).join('')}
+      <button class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="DB.settings.recipes[${ri}].mixersGarnishes.push({name:'',qty:1,unit:'oz'});renderSettings()">+ Add Mixer / Garnish</button>
     </div>`).join('');
 
   // Static costs
@@ -1556,7 +1866,11 @@ function toggleBottleSize(spiritIdx,bs,checked){
 function addSpiritToLibrary(){DB.settings.spiritsLibrary.push({id:uid(),name:'New Spirit',oz:2,bottleSizes:[750,1750]});renderSettings();}
 function addRecipe(){
   const lib=DB.settings.spiritsLibrary||[];
-  DB.settings.recipes.push({id:uid(),name:'New Cocktail',spiritId:lib[0]?.id||'',ingredients:[{name:'Spirit',qty:2,unit:'oz'},{name:'Mixer',qty:3,unit:'oz'}]});
+  DB.settings.recipes.push({
+    id:uid(),name:'New Cocktail',
+    alcoholicIngredients:[{spiritId:lib[0]?.id||'',name:lib[0]?.name||'Spirit',qty:2,unit:'oz',bottleSize:750}],
+    mixersGarnishes:[{name:'Mixer',qty:3,unit:'oz'},{name:'Garnish',qty:1,unit:'pc'}]
+  });
   renderSettings();
 }
 function addStaticCost(){DB.settings.staticCosts.push({id:uid(),name:'New Item',costPerGuest:0.25});renderSettings();}
