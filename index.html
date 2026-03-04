@@ -1,522 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>BarOps — Mobile Bar Business Manager</title>
+<title>BarOps v2 — Mobile Bar Business Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-  :root {
-    --bg: #0d0f0f;
-    --surface: #161a1a;
-    --surface2: #1e2424;
-    --border: #2a3030;
-    --accent: #c8a96e;
-    --accent2: #7ecac3;
-    --accent3: #e07c5a;
-    --text: #e8e2d9;
-    --text-muted: #7a8888;
-    --text-dim: #4a5555;
-    --success: #5cbb8c;
-    --warning: #e0b45a;
-    --danger: #e05a5a;
-    --radius: 10px;
-    --radius-lg: 16px;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans', sans-serif; font-size:14px; }
-  
-  /* ===== LAYOUT ===== */
-  #app { display:flex; flex-direction:column; height:100vh; }
-  
-  /* ===== TOP BAR ===== */
-  #topbar {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 24px; height:56px; background:var(--surface);
-    border-bottom:1px solid var(--border); flex-shrink:0;
-  }
-  .logo { font-family:'Playfair Display', serif; font-size:22px; color:var(--accent); letter-spacing:0.02em; }
-  .logo span { color:var(--text-muted); font-size:13px; font-family:'DM Sans',sans-serif; font-weight:300; margin-left:8px; }
-  .topbar-actions { display:flex; gap:8px; }
-  .btn-icon { background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:6px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; transition:all .2s; }
-  .btn-icon:hover { border-color:var(--accent); color:var(--accent); }
-
-  /* ===== TABS ===== */
-  #tabs {
-    display:flex; gap:2px; padding:8px 24px 0;
-    background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0;
-    overflow-x:auto; scrollbar-width:none;
-  }
-  #tabs::-webkit-scrollbar { display:none; }
-  .tab {
-    padding:8px 16px; border-radius:8px 8px 0 0; cursor:pointer;
-    font-size:12px; font-weight:500; color:var(--text-muted);
-    border:1px solid transparent; border-bottom:none;
-    white-space:nowrap; transition:all .2s; background:transparent;
-  }
-  .tab:hover { color:var(--text); background:var(--surface2); }
-  .tab.active { background:var(--bg); color:var(--accent); border-color:var(--border); }
-  .tab .tab-icon { margin-right:6px; }
-
-  /* ===== CONTENT AREA ===== */
-  #content { flex:1; overflow-y:auto; padding:24px; }
-  .panel { display:none; }
-  .panel.active { display:block; }
-
-  /* ===== SHARED COMPONENTS ===== */
-  .page-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; }
-  .page-title { font-family:'Playfair Display',serif; font-size:28px; color:var(--text); }
-  .page-subtitle { color:var(--text-muted); font-size:13px; margin-top:2px; }
-
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
-  .card-sm { padding:14px 16px; }
-  
-  .stat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px; margin-bottom:24px; }
-  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
-  .stat-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
-  .stat-value { font-size:22px; font-weight:600; color:var(--text); font-family:'DM Mono',monospace; }
-  .stat-value.accent { color:var(--accent); }
-  .stat-value.success { color:var(--success); }
-  .stat-value.danger { color:var(--danger); }
-
-  /* ===== BUTTONS ===== */
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:7px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .2s; }
-  .btn-primary { background:var(--accent); color:#111; }
-  .btn-primary:hover { background:#d9be87; }
-  .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
-  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
-  .btn-danger { background:rgba(224,90,90,.15); color:var(--danger); border:1px solid rgba(224,90,90,.3); }
-  .btn-danger:hover { background:rgba(224,90,90,.25); }
-  .btn-success { background:rgba(92,187,140,.15); color:var(--success); border:1px solid rgba(92,187,140,.3); }
-  .btn-sm { padding:5px 10px; font-size:12px; }
-
-  /* ===== TABLE ===== */
-  .table-wrap { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border); }
-  table { width:100%; border-collapse:collapse; }
-  th { background:var(--surface2); color:var(--text-muted); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); }
-  td { padding:10px 14px; border-bottom:1px solid rgba(42,48,48,.6); color:var(--text); font-size:13px; vertical-align:middle; }
-  tr:last-child td { border-bottom:none; }
-  tr:hover td { background:rgba(200,169,110,.04); }
-  
-  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
-  .badge-new { background:rgba(126,202,195,.15); color:var(--accent2); }
-  .badge-repeat { background:rgba(200,169,110,.15); color:var(--accent); }
-  .badge-done { background:rgba(92,187,140,.15); color:var(--success); }
-  .badge-progress { background:rgba(224,180,90,.15); color:var(--warning); }
-  .badge-pending { background:rgba(224,90,90,.15); color:var(--danger); }
-  .badge-yes { background:rgba(224,90,90,.15); color:var(--danger); }
-  .badge-no { background:rgba(92,187,140,.15); color:var(--success); }
-
-  /* ===== FORMS ===== */
-  .form-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; }
-  .form-group { display:flex; flex-direction:column; gap:5px; }
-  .form-group label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
-  .form-group input, .form-group select, .form-group textarea {
-    background:var(--surface2); border:1px solid var(--border); color:var(--text);
-    padding:8px 12px; border-radius:7px; font-family:'DM Sans',sans-serif; font-size:13px;
-    transition:border-color .2s; outline:none;
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent); }
-  .form-group textarea { resize:vertical; min-height:70px; }
-  select option { background:var(--surface2); }
-  .form-row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
-  .form-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
-  .form-section-title { font-size:12px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
-
-  /* ===== MODAL ===== */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:center; justify-content:center; padding:20px; }
-  .modal-overlay.open { display:flex; }
-  .modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); width:100%; max-width:680px; max-height:90vh; overflow-y:auto; }
-  .modal-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); }
-  .modal-title { font-family:'Playfair Display',serif; font-size:20px; }
-  .modal-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; padding:4px; }
-  .modal-close:hover { color:var(--text); }
-  .modal-body { padding:24px; }
-  .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
-
-  /* ===== SECTION DIVIDER ===== */
-  .divider { height:1px; background:var(--border); margin:20px 0; }
-
-  /* ===== ACTIONS COL ===== */
-  .actions { display:flex; gap:6px; }
-  
-  /* ===== INLINE EDIT ===== */
-  .editable-cell input { background:var(--surface2); border:1px solid var(--accent); color:var(--text); padding:3px 7px; border-radius:4px; font-size:13px; width:100%; font-family:'DM Sans',sans-serif; }
-
-  /* ===== STAR RATING ===== */
-  .stars { color:var(--accent); letter-spacing:1px; }
-
-  /* ===== EMPTY STATE ===== */
-  .empty-state { text-align:center; padding:48px 20px; color:var(--text-muted); }
-  .empty-state .icon { font-size:40px; margin-bottom:12px; }
-  .empty-state p { font-size:14px; }
-
-  /* ===== SETTINGS ===== */
-  .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  @media(max-width:700px) { .settings-grid { grid-template-columns:1fr; } }
-
-  /* ===== TOAST ===== */
-  #toast { position:fixed; bottom:24px; right:24px; background:var(--surface2); border:1px solid var(--accent); color:var(--text); padding:12px 20px; border-radius:10px; font-size:13px; transform:translateY(80px); opacity:0; transition:all .3s; z-index:200; pointer-events:none; }
-  #toast.show { transform:translateY(0); opacity:1; }
-
-  /* ===== SUMMARY PDF PREVIEW ===== */
-  #pdf-preview { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:150; overflow-y:auto; padding:20px; }
-  #pdf-preview.open { display:flex; flex-direction:column; align-items:center; }
-  #pdf-preview-actions { display:flex; gap:10px; margin-bottom:16px; }
-  #pdf-content {
-    background:#fff; color:#111; width:100%; max-width:760px;
-    padding:48px; font-family:'DM Sans',sans-serif; border-radius:8px;
-    line-height:1.6;
-  }
-  #pdf-content h1 { font-family:'Playfair Display',serif; font-size:32px; margin-bottom:4px; }
-  #pdf-content .pdf-sub { color:#666; font-size:13px; margin-bottom:28px; border-bottom:2px solid #111; padding-bottom:12px; }
-  #pdf-content .pdf-section { margin-bottom:24px; }
-  #pdf-content .pdf-section h2 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#444; margin-bottom:10px; border-bottom:1px solid #ddd; padding-bottom:6px; }
-  #pdf-content table { width:100%; border-collapse:collapse; font-size:13px; }
-  #pdf-content th { background:#f5f5f5; padding:7px 10px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#555; }
-  #pdf-content td { padding:7px 10px; border-bottom:1px solid #eee; }
-  #pdf-content .pdf-totals { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  #pdf-content .pdf-total-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; font-size:13px; }
-  #pdf-content .pdf-total-row.total { font-weight:700; font-size:15px; border-top:2px solid #111; border-bottom:none; margin-top:4px; padding-top:10px; }
-  #pdf-content .pdf-profit { background:#f0faf5; border-radius:8px; padding:16px; margin-top:16px; }
-  #pdf-content .profit-num { font-size:28px; font-weight:700; color:#2d7a56; }
-
-  @media print {
-    body * { visibility:hidden; }
-    #pdf-content, #pdf-content * { visibility:visible; }
-    #pdf-content { position:absolute; left:0; top:0; width:100%; box-shadow:none; }
-    #pdf-preview-actions { display:none; }
-  }
+:root {
+  --bg:#0d0f0f; --surface:#161a1a; --surface2:#1e2424; --border:#2a3030;
+  --accent:#c8a96e; --accent2:#7ecac3; --accent3:#e07c5a;
+  --text:#e8e2d9; --text-muted:#7a8888; --text-dim:#4a5555;
+  --success:#5cbb8c; --warning:#e0b45a; --danger:#e05a5a;
+  --radius:10px; --radius-lg:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;}
+#app{display:flex;flex-direction:column;height:100vh;}
+/* TOPBAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--accent);letter-spacing:.02em;}
+.logo span{color:var(--text-muted);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:300;margin-left:8px;}
+.topbar-actions{display:flex;gap:8px;}
+.btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;transition:all .2s;}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent);}
+/* TABS */
+#tabs{display:flex;gap:2px;padding:8px 24px 0;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+#tabs::-webkit-scrollbar{display:none;}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:500;color:var(--text-muted);border:1px solid transparent;border-bottom:none;white-space:nowrap;transition:all .2s;background:transparent;}
+.tab:hover{color:var(--text);background:var(--surface2);}
+.tab.active{background:var(--bg);color:var(--accent);border-color:var(--border);}
+/* CONTENT */
+#content{flex:1;overflow-y:auto;padding:24px;}
+.panel{display:none;} .panel.active{display:block;}
+/* SHARED */
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;}
+.page-title{font-family:'Playfair Display',serif;font-size:28px;color:var(--text);}
+.page-subtitle{color:var(--text-muted);font-size:13px;margin-top:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.stat-value{font-size:20px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;}
+.stat-value.accent{color:var(--accent);} .stat-value.success{color:var(--success);} .stat-value.danger{color:var(--danger);}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#111;} .btn-primary:hover{background:#d9be87;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);} .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:rgba(224,90,90,.15);color:var(--danger);border:1px solid rgba(224,90,90,.3);} .btn-danger:hover{background:rgba(224,90,90,.25);}
+.btn-success{background:rgba(92,187,140,.15);color:var(--success);border:1px solid rgba(92,187,140,.3);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--surface2);color:var(--text-muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid rgba(42,48,48,.6);color:var(--text);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(200,169,110,.04);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+.badge-new{background:rgba(126,202,195,.15);color:var(--accent2);}
+.badge-repeat{background:rgba(200,169,110,.15);color:var(--accent);}
+.badge-done{background:rgba(92,187,140,.15);color:var(--success);}
+.badge-progress{background:rgba(224,180,90,.15);color:var(--warning);}
+.badge-pending{background:rgba(224,90,90,.15);color:var(--danger);}
+.badge-yes{background:rgba(224,90,90,.15);color:var(--danger);}
+.badge-no{background:rgba(92,187,140,.15);color:var(--success);}
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s;outline:none;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);}
+.form-group textarea{resize:vertical;min-height:70px;}
+select option{background:var(--surface2);}
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;}
+.form-section-title{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:700px;max-height:92vh;overflow-y:auto;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+.actions{display:flex;gap:6px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);}
+.empty-state .icon{font-size:40px;margin-bottom:12px;}
+.stars{color:var(--accent);letter-spacing:1px;}
+/* INLINE INPUT */
+.inline-row{display:grid;gap:8px;align-items:center;margin-bottom:8px;}
+.inline-row input,.inline-row select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;width:100%;font-family:'DM Sans',sans-serif;}
+.inline-row input:focus,.inline-row select:focus{border-color:var(--accent);outline:none;}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);padding:12px 20px;border-radius:10px;font-size:13px;transform:translateY(80px);opacity:0;transition:all .3s;z-index:200;pointer-events:none;}
+#toast.show{transform:translateY(0);opacity:1;}
+/* CALC LAYOUT */
+.calc-layout{display:grid;grid-template-columns:1fr 380px;gap:16px;}
+@media(max-width:900px){.calc-layout{grid-template-columns:1fr;}}
+/* SUMMARY STICKY */
+.calc-right{position:sticky;top:0;align-self:start;}
+/* HIGHLIGHT BOX */
+.highlight-box{background:rgba(200,169,110,.07);border:1px solid rgba(200,169,110,.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+/* SHOPPING LIST */
+.shop-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.shop-item:last-child{border-bottom:none;}
+.shop-qty{font-family:'DM Mono',monospace;color:var(--accent);font-size:14px;font-weight:600;}
+/* SETTINGS GRID */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:800px){.settings-grid{grid-template-columns:1fr;}}
+/* PDF */
+#pdf-preview{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:150;overflow-y:auto;padding:20px;flex-direction:column;align-items:center;}
+#pdf-preview.open{display:flex;}
+#pdf-preview-actions{display:flex;gap:10px;margin-bottom:16px;}
+#pdf-content{background:#fff;color:#111;width:100%;max-width:800px;padding:48px;font-family:'DM Sans',sans-serif;border-radius:8px;line-height:1.6;}
+#pdf-content h1{font-family:'Playfair Display',serif;font-size:30px;margin-bottom:4px;}
+#pdf-content .pdf-sub{color:#666;font-size:12px;margin-bottom:24px;border-bottom:2px solid #111;padding-bottom:10px;}
+#pdf-content .pdf-section{margin-bottom:22px;}
+#pdf-content .pdf-section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#444;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:5px;}
+#pdf-content table{width:100%;border-collapse:collapse;font-size:12px;}
+#pdf-content th{background:#f5f5f5;padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#555;}
+#pdf-content td{padding:6px 10px;border-bottom:1px solid #eee;}
+#pdf-content .pdf-totals{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+#pdf-content .pdf-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:13px;}
+#pdf-content .pdf-row.total{font-weight:700;font-size:14px;border-top:2px solid #111;border-bottom:none;margin-top:4px;padding-top:8px;}
+#pdf-content .profit-box{background:#f0faf5;border-radius:8px;padding:14px;margin-top:14px;}
+#pdf-content .profit-num{font-size:26px;font-weight:700;color:#2d7a56;}
+@media print{body *{visibility:hidden;}#pdf-content,#pdf-content *{visibility:visible;}#pdf-content{position:absolute;left:0;top:0;width:100%;}#pdf-preview-actions{display:none!important;}}
+/* SECTION LABEL */
+.section-label{font-family:'Playfair Display',serif;font-size:18px;margin:20px 0 10px;}
+/* PACE BUTTONS */
+.pace-btn{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all .2s;}
+.pace-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
+/* PILL TAG */
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;background:rgba(200,169,110,.12);color:var(--accent);margin:2px;}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <div class="logo">BarOps <span>Mobile Bar Business Manager</span></div>
-    <div class="topbar-actions">
-      <button class="btn-icon" onclick="exportData()">⬇ Export Backup</button>
-      <button class="btn-icon" onclick="document.getElementById('importFile').click()">⬆ Import Backup</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"/>
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">BarOps <span>v2 — Mobile Bar Manager</span></div>
+  <div class="topbar-actions">
+    <button class="btn-icon" onclick="exportData()">⬇ Export Backup</button>
+    <button class="btn-icon" onclick="document.getElementById('importFile').click()">⬆ Import Backup</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"/>
+  </div>
+</div>
+
+<!-- TABS -->
+<div id="tabs">
+  <div class="tab active" onclick="showTab('orders')" id="tab-orders">📋 Orders</div>
+  <div class="tab" onclick="showTab('calculator')" id="tab-calculator">🍹 Event Calc</div>
+  <div class="tab" onclick="showTab('inventory')" id="tab-inventory">🍾 Inventory</div>
+  <div class="tab" onclick="showTab('expenses')" id="tab-expenses">💸 Expenses</div>
+  <div class="tab" onclick="showTab('suppliers')" id="tab-suppliers">🤝 Suppliers</div>
+  <div class="tab" onclick="showTab('equipment')" id="tab-equipment">🔧 Equipment</div>
+  <div class="tab" onclick="showTab('todos')" id="tab-todos">✅ To-Do</div>
+  <div class="tab" onclick="showTab('settings')" id="tab-settings">⚙️ Settings</div>
+</div>
+
+<div id="content">
+
+<!-- ==================== ORDERS ==================== -->
+<div class="panel active" id="panel-orders">
+  <div class="page-header">
+    <div><div class="page-title">Order Tracker</div><div class="page-subtitle">All client bookings</div></div>
+    <button class="btn btn-primary" onclick="openOrderModal()">+ New Order</button>
+  </div>
+  <div class="stat-grid" id="order-stats"></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Order ID</th><th>Client</th><th>Event Date</th><th>Event Type</th>
+      <th>Guests</th><th>Location</th><th>Status</th><th>Revenue</th><th>Actions</th>
+    </tr></thead><tbody id="orders-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ==================== CALCULATOR ==================== -->
+<div class="panel" id="panel-calculator">
+  <div class="page-header">
+    <div><div class="page-title">Event Calculator</div><div class="page-subtitle">Full drink math, shopping list, profit — all auto-calculated</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="clearCalc()">Clear</button>
+      <button class="btn btn-primary" onclick="generatePDF()">📄 PDF Summary</button>
     </div>
   </div>
 
-  <!-- TABS -->
-  <div id="tabs">
-    <div class="tab active" onclick="showTab('orders')" id="tab-orders"><span class="tab-icon">📋</span>Orders</div>
-    <div class="tab" onclick="showTab('calculator')" id="tab-calculator"><span class="tab-icon">🍹</span>Event Calc</div>
-    <div class="tab" onclick="showTab('inventory')" id="tab-inventory"><span class="tab-icon">🍾</span>Inventory</div>
-    <div class="tab" onclick="showTab('expenses')" id="tab-expenses"><span class="tab-icon">💸</span>Expenses</div>
-    <div class="tab" onclick="showTab('suppliers')" id="tab-suppliers"><span class="tab-icon">🤝</span>Suppliers</div>
-    <div class="tab" onclick="showTab('equipment')" id="tab-equipment"><span class="tab-icon">🔧</span>Equipment</div>
-    <div class="tab" onclick="showTab('todos')" id="tab-todos"><span class="tab-icon">✅</span>To-Do</div>
-    <div class="tab" onclick="showTab('settings')" id="tab-settings"><span class="tab-icon">⚙️</span>Settings</div>
+  <div class="calc-layout">
+    <!-- LEFT COLUMN -->
+    <div>
+      <!-- EVENT DETAILS -->
+      <div class="form-section">
+        <div class="form-section-title">Event Details</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Load from Order</label>
+            <select id="calc-order-select" onchange="loadOrderIntoCalc()">
+              <option value="">— New Event —</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Client Name</label><input type="text" id="calc-client" placeholder="Jane Smith" oninput="recalc()"/></div>
+          <div class="form-group"><label>Event Date</label><input type="date" id="calc-date" oninput="recalc()"/></div>
+          <div class="form-group"><label>Event Type</label><select id="calc-type" onchange="recalc()"></select></div>
+          <div class="form-group"><label>Adults</label><input type="number" id="calc-adults" value="40" min="0" oninput="recalc()"/></div>
+          <div class="form-group"><label>Kids (non-drinkers)</label><input type="number" id="calc-kids" value="0" min="0" oninput="recalc()"/></div>
+          <div class="form-group"><label>Service Hours</label><input type="number" id="calc-hours" value="4" min="1" step="0.5" oninput="recalc()"/></div>
+          <div class="form-group"><label>Price per Adult ($)</label><input type="number" id="calc-price-adult" value="35" min="0" oninput="recalc()"/></div>
+          <div class="form-group"><label>Price per Kid ($)</label><input type="number" id="calc-price-kid" value="15" min="0" oninput="recalc()"/></div>
+        </div>
+        <!-- DRINK PACE -->
+        <div style="margin-top:16px;">
+          <div class="form-group" style="margin-bottom:8px;"><label>Drinking Pace</label></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pace-btn" id="pace-lite" onclick="setPace('lite')">🥤 Lite (0.75/hr)</button>
+            <button class="pace-btn active" id="pace-avg" onclick="setPace('avg')">🍹 Average (1.0/hr)</button>
+            <button class="pace-btn" id="pace-above" onclick="setPace('above')">🍸 Above Avg (1.25/hr)</button>
+            <button class="pace-btn" id="pace-heavy" onclick="setPace('heavy')">🥃 Heavy (1.5/hr)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRINK MENU & POPULARITY -->
+      <div class="form-section">
+        <div class="form-section-title">Drink Menu — Popularity % & Bottle Calculation</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Popularity % must total 100%. Each spirit's oz per serving comes from Settings.</div>
+        <div id="drink-menu-list"></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkToMenu()">+ Add Spirit/Drink</button>
+        <div id="pct-warning" style="color:var(--danger);font-size:12px;margin-top:8px;display:none;">⚠ Percentages must total 100%</div>
+      </div>
+
+      <!-- RECIPES / SHOPPING LIST -->
+      <div class="form-section">
+        <div class="form-section-title">Auto-Generated Shopping List</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Based on drink quantities above + recipes in Settings. Includes spirits, mixers, and garnishes.</div>
+        <div id="shopping-list-output"></div>
+      </div>
+
+      <!-- STATIC EVENT COSTS (per guest) -->
+      <div class="form-section">
+        <div class="form-section-title">Static Event Costs (per guest)</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Each item cost × total guests. Add/edit items in Settings.</div>
+        <div id="static-costs-calc"></div>
+      </div>
+
+      <!-- LABOR -->
+      <div class="form-section">
+        <div class="form-section-title">Labor</div>
+        <div id="labor-list"></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addLaborRow()">+ Add Staff</button>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN - SUMMARY -->
+    <div class="calc-right">
+      <div class="card">
+        <div class="form-section-title" style="margin-bottom:16px;">Live Event Summary</div>
+        <div id="calc-summary"></div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- CONTENT -->
-  <div id="content">
+<!-- ==================== INVENTORY ==================== -->
+<div class="panel" id="panel-inventory">
+  <div class="page-header">
+    <div><div class="page-title">Inventory</div><div class="page-subtitle">Spirits, ingredients &amp; consumables</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="openModal('inv-spirit-modal')">+ Spirit / Ingredient</button>
+      <button class="btn btn-primary" onclick="openModal('inv-consumable-modal')">+ Consumable</button>
+    </div>
+  </div>
+  <div class="section-label">Spirits &amp; Ingredients</div>
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <table><thead><tr>
+      <th>Item</th><th>Bottle Size</th><th>Pkg Price</th><th>Cost/Unit</th>
+      <th>Stock</th><th>Stock Value</th><th>Min Stock</th><th>Reorder?</th><th>Supplier</th><th>Expiry</th><th>Actions</th>
+    </tr></thead><tbody id="spirits-tbody"></tbody></table>
+  </div>
+  <div class="section-label">Bar Consumables &amp; Rentals</div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Item</th><th>Pkg Price</th><th>Units/Pkg</th><th>Cost/Unit</th>
+      <th>Stock</th><th>Unit</th><th>Stock Value</th><th>Min Stock</th><th>Reorder?</th><th>Supplier</th><th>Actions</th>
+    </tr></thead><tbody id="consumables-tbody"></tbody></table>
+  </div>
+</div>
 
-    <!-- ============ ORDERS ============ -->
-    <div class="panel active" id="panel-orders">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Order Tracker</div>
-          <div class="page-subtitle">All client bookings in one place</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('order-modal')">+ New Order</button>
-      </div>
-      <div class="stat-grid" id="order-stats"></div>
-      <div class="table-wrap">
-        <table id="orders-table">
-          <thead>
-            <tr>
-              <th>Order ID</th><th>Client</th><th>Event Date</th><th>Event Type</th>
-              <th>Guests</th><th>Location</th><th>Status</th><th>Revenue</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="orders-tbody"></tbody>
-        </table>
+<!-- ==================== EXPENSES ==================== -->
+<div class="panel" id="panel-expenses">
+  <div class="page-header">
+    <div><div class="page-title">Expenses Tracker</div><div class="page-subtitle">All outgoings by category</div></div>
+    <button class="btn btn-primary" onclick="openModal('expense-modal')">+ Log Expense</button>
+  </div>
+  <div class="stat-grid" id="expense-stats"></div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Date</th><th>Amount</th><th>Category</th><th>Subcategory</th>
+      <th>Description</th><th>Supplier</th><th>Payment</th><th>Notes</th><th>Actions</th>
+    </tr></thead><tbody id="expenses-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ==================== SUPPLIERS ==================== -->
+<div class="panel" id="panel-suppliers">
+  <div class="page-header">
+    <div><div class="page-title">Supplier Tracker</div><div class="page-subtitle">All vendors, contacts, ratings</div></div>
+    <button class="btn btn-primary" onclick="openModal('supplier-modal')">+ Add Supplier</button>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Name</th><th>Product</th><th>Availability</th><th>Cost</th>
+      <th>Deposit?</th><th>Contact</th><th>Phone</th><th>Email</th><th>Rating</th><th>Notes</th><th>Actions</th>
+    </tr></thead><tbody id="suppliers-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ==================== EQUIPMENT ==================== -->
+<div class="panel" id="panel-equipment">
+  <div class="page-header">
+    <div><div class="page-title">Equipment Tracker</div><div class="page-subtitle">Gear, condition, location</div></div>
+    <button class="btn btn-primary" onclick="openModal('equipment-modal')">+ Add Equipment</button>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Product</th><th>Purchase Date</th><th>Condition</th><th>Qty</th>
+      <th>Supplier</th><th>Cost</th><th>Location</th><th>Notes</th><th>Actions</th>
+    </tr></thead><tbody id="equipment-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ==================== TODOS ==================== -->
+<div class="panel" id="panel-todos">
+  <div class="page-header">
+    <div><div class="page-title">To-Do List</div><div class="page-subtitle">Event prep tasks</div></div>
+    <button class="btn btn-primary" onclick="openModal('todo-modal')">+ Add Task</button>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr>
+      <th>Task</th><th>Assigned To</th><th>Deadline</th><th>Progress</th><th>Notes</th><th>Actions</th>
+    </tr></thead><tbody id="todos-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS ==================== -->
+<div class="panel" id="panel-settings">
+  <div class="page-header">
+    <div><div class="page-title">Settings &amp; Hard Values</div><div class="page-subtitle">These power all auto-calculations in the Event Calculator</div></div>
+    <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
+  </div>
+  <div class="settings-grid">
+
+    <div class="form-section">
+      <div class="form-section-title">Business Info</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Business Name</label><input type="text" id="s-biz-name"/></div>
+        <div class="form-group"><label>Your Name</label><input type="text" id="s-owner-name"/></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="s-phone"/></div>
+        <div class="form-group"><label>Email</label><input type="text" id="s-email"/></div>
       </div>
     </div>
 
-    <!-- ============ EVENT CALCULATOR ============ -->
-    <div class="panel" id="panel-calculator">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Event Calculator</div>
-          <div class="page-subtitle">Build a quote — auto-calculates from your Settings defaults</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary" onclick="clearCalc()">Clear</button>
-          <button class="btn btn-primary" onclick="generatePDF()">📄 Generate PDF Summary</button>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div>
-          <div class="form-section">
-            <div class="form-section-title">Event Details</div>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Select Existing Order (optional)</label>
-                <select id="calc-order-select" onchange="loadOrderIntoCalc()">
-                  <option value="">— New Event —</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Client Name</label>
-                <input type="text" id="calc-client" placeholder="Jane Smith"/>
-              </div>
-              <div class="form-group">
-                <label>Event Date</label>
-                <input type="date" id="calc-date"/>
-              </div>
-              <div class="form-group">
-                <label>Event Type</label>
-                <select id="calc-type">
-                  <option>Birthday Party</option><option>Wedding</option><option>Corporate Event</option>
-                  <option>Festival / Large Event</option><option>Cocktail Bar Service</option>
-                  <option>Private Party</option><option>Cash Bar Service</option><option>Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Adults</label>
-                <input type="number" id="calc-adults" value="50" min="0" oninput="recalc()"/>
-              </div>
-              <div class="form-group">
-                <label>Kids</label>
-                <input type="number" id="calc-kids" value="0" min="0" oninput="recalc()"/>
-              </div>
-              <div class="form-group">
-                <label>Service Hours</label>
-                <input type="number" id="calc-hours" value="4" min="1" oninput="recalc()"/>
-              </div>
-              <div class="form-group">
-                <label>Price per Adult ($)</label>
-                <input type="number" id="calc-price-adult" value="35" min="0" oninput="recalc()"/>
-              </div>
-              <div class="form-group">
-                <label>Price per Kid ($)</label>
-                <input type="number" id="calc-price-kid" value="15" min="0" oninput="recalc()"/>
-              </div>
-              <div class="form-group">
-                <label>Other Event Costs ($)</label>
-                <input type="number" id="calc-other-costs" value="0" min="0" oninput="recalc()"/>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <div class="form-section-title">Menu — Drinks & Distribution</div>
-            <div id="menu-list"></div>
-            <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkRow()">+ Add Drink</button>
-            <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Distribution % must total 100%</div>
-          </div>
-
-          <div class="form-section">
-            <div class="form-section-title">Labor</div>
-            <div id="labor-list"></div>
-            <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addLaborRow()">+ Add Staff</button>
-          </div>
-        </div>
-
-        <div>
-          <div class="card" style="position:sticky;top:0;">
-            <div class="form-section-title" style="margin-bottom:16px;">Event Summary</div>
-            <div id="calc-summary"></div>
-          </div>
-        </div>
+    <div class="form-section">
+      <div class="form-section-title">Default Pricing &amp; Rates</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Default Price / Adult ($)</label><input type="number" id="s-price-adult" value="35"/></div>
+        <div class="form-group"><label>Default Price / Kid ($)</label><input type="number" id="s-price-kid" value="15"/></div>
+        <div class="form-group"><label>Revenue Target ($)</label><input type="number" id="s-rev-target" value="100000"/></div>
       </div>
     </div>
 
-    <!-- ============ INVENTORY ============ -->
-    <div class="panel" id="panel-inventory">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Inventory</div>
-          <div class="page-subtitle">Spirits & consumables — reorder alerts auto-trigger</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary" onclick="openModal('inv-spirit-modal')">+ Add Spirit</button>
-          <button class="btn btn-primary" onclick="openModal('inv-consumable-modal')">+ Add Consumable</button>
-        </div>
+    <!-- SPIRITS LIBRARY -->
+    <div class="form-section" style="grid-column:1/-1;">
+      <div class="form-section-title">🍾 Spirits Library — oz per serving &amp; bottle sizes</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+        These are your base spirits. Set oz per serving and available bottle sizes. Used for bottle calculations in the Event Calculator.
       </div>
-
-      <div style="margin-bottom:8px;font-family:'Playfair Display',serif;font-size:18px;">Spirits</div>
-      <div class="table-wrap" style="margin-bottom:24px;">
-        <table>
-          <thead><tr>
-            <th>Item</th><th>Pkg Price</th><th>Units/Pkg</th><th>Cost/Unit</th>
-            <th>Stock</th><th>Stock Value</th><th>Min Stock</th><th>Reorder?</th><th>Supplier</th><th>Expiry</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="spirits-tbody"></tbody>
-        </table>
-      </div>
-
-      <div style="margin-bottom:8px;font-family:'Playfair Display',serif;font-size:18px;">Bar Consumables</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Item</th><th>Pkg Price</th><th>Units/Pkg</th><th>Cost/Unit</th>
-            <th>Stock</th><th>Unit Type</th><th>Stock Value</th><th>Min Stock</th><th>Reorder?</th><th>Supplier</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="consumables-tbody"></tbody>
-        </table>
-      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:8px;" id="spirits-library-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addSpiritToLibrary()">+ Add Spirit</button>
     </div>
 
-    <!-- ============ EXPENSES ============ -->
-    <div class="panel" id="panel-expenses">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Expenses Tracker</div>
-          <div class="page-subtitle">All outgoings logged by category</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('expense-modal')">+ Log Expense</button>
+    <!-- COCKTAIL RECIPES -->
+    <div class="form-section" style="grid-column:1/-1;">
+      <div class="form-section-title">🍹 Cocktail Recipes — Ingredients &amp; Mixers</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+        For each cocktail, add every ingredient with quantity and unit. This drives the auto-generated shopping list.
       </div>
-      <div class="stat-grid" id="expense-stats"></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Date</th><th>Amount</th><th>Category</th><th>Subcategory</th>
-            <th>Description</th><th>Supplier</th><th>Payment</th><th>Notes</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="expenses-tbody"></tbody>
-        </table>
-      </div>
+      <div id="recipes-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addRecipe()">+ Add Recipe</button>
     </div>
 
-    <!-- ============ SUPPLIERS ============ -->
-    <div class="panel" id="panel-suppliers">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Supplier Tracker</div>
-          <div class="page-subtitle">All vendors, contacts, ratings</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('supplier-modal')">+ Add Supplier</button>
+    <!-- STATIC EVENT COSTS -->
+    <div class="form-section" style="grid-column:1/-1;">
+      <div class="form-section-title">🥤 Static Per-Guest Costs (cups, ice, straws, etc.)</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+        Enter a cost per guest for each static item. In the Event Calculator these multiply by total guest count automatically.
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Name</th><th>Product/Item</th><th>Availability</th><th>Cost</th>
-            <th>Deposit Req?</th><th>Contact</th><th>Phone</th><th>Email</th><th>Rating</th><th>Notes</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="suppliers-tbody"></tbody>
-        </table>
-      </div>
+      <div id="static-costs-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addStaticCost()">+ Add Item</button>
     </div>
 
-    <!-- ============ EQUIPMENT ============ -->
-    <div class="panel" id="panel-equipment">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Equipment Tracker</div>
-          <div class="page-subtitle">All gear — location, condition, cost</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('equipment-modal')">+ Add Equipment</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Product</th><th>Purchase Date</th><th>Condition</th><th>Qty</th>
-            <th>Supplier</th><th>Cost</th><th>Location</th><th>Notes</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="equipment-tbody"></tbody>
-        </table>
-      </div>
+    <div class="form-section">
+      <div class="form-section-title">Expense Categories</div>
+      <div id="expense-categories-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addExpenseCategory()">+ Add Category</button>
     </div>
 
-    <!-- ============ TO-DO ============ -->
-    <div class="panel" id="panel-todos">
-      <div class="page-header">
-        <div>
-          <div class="page-title">To-Do List</div>
-          <div class="page-subtitle">Event prep tasks — assigned, tracked</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('todo-modal')">+ Add Task</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Task</th><th>Assigned To</th><th>Deadline</th><th>Progress</th><th>Notes</th><th>Actions</th>
-          </tr></thead>
-          <tbody id="todos-tbody"></tbody>
-        </table>
-      </div>
+    <div class="form-section">
+      <div class="form-section-title">Staff Roles &amp; Event Types</div>
+      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Staff Roles</div>
+      <div id="staff-roles-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;margin-bottom:16px" onclick="addStaffRole()">+ Add Role</button>
+      <div class="divider"></div>
+      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:12px;">Event Types</div>
+      <div id="event-types-list"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addEventType()">+ Add Type</button>
     </div>
 
-    <!-- ============ SETTINGS ============ -->
-    <div class="panel" id="panel-settings">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Settings & Hard Values</div>
-          <div class="page-subtitle">These values power all your auto-calculations</div>
-        </div>
-        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-      </div>
+  </div>
+</div>
 
-      <div class="settings-grid">
-        <div class="form-section">
-          <div class="form-section-title">Business Info</div>
-          <div class="form-grid">
-            <div class="form-group"><label>Business Name</label><input type="text" id="s-biz-name" placeholder="Your Bar Co."/></div>
-            <div class="form-group"><label>Your Name</label><input type="text" id="s-owner-name"/></div>
-            <div class="form-group"><label>Phone</label><input type="text" id="s-phone"/></div>
-            <div class="form-group"><label>Email</label><input type="text" id="s-email"/></div>
-            <div class="form-group"><label>Website</label><input type="text" id="s-website"/></div>
-          </div>
-        </div>
+</div><!-- /content -->
+</div><!-- /app -->
 
-        <div class="form-section">
-          <div class="form-section-title">Default Pricing</div>
-          <div class="form-grid">
-            <div class="form-group"><label>Default Price / Adult ($)</label><input type="number" id="s-price-adult" value="35"/></div>
-            <div class="form-group"><label>Default Price / Kid ($)</label><input type="number" id="s-price-kid" value="15"/></div>
-            <div class="form-group"><label>Drinks per Adult / Hour</label><input type="number" id="s-dpa" value="1.5" step="0.1"/></div>
-            <div class="form-group"><label>Drinks per Kid / Hour</label><input type="number" id="s-dpk" value="0.5" step="0.1"/></div>
-            <div class="form-group"><label>Revenue Target ($)</label><input type="number" id="s-rev-target" value="100000"/></div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Drink Defaults (oz per serving)</div>
-          <div id="drink-defaults-list"></div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkDefault()">+ Add Drink Type</button>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Expense Categories</div>
-          <div id="expense-categories-list"></div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addExpenseCategory()">+ Add Category</button>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Staff Roles</div>
-          <div id="staff-roles-list"></div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addStaffRole()">+ Add Role</button>
-        </div>
-
-        <div class="form-section">
-          <div class="form-section-title">Event Types</div>
-          <div id="event-types-list"></div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addEventType()">+ Add Event Type</button>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- end #content -->
-</div><!-- end #app -->
-
-<!-- ======== MODALS ======== -->
+<!-- ================= MODALS ================= -->
 
 <!-- ORDER MODAL -->
 <div class="modal-overlay" id="order-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="order-modal-title">New Order</div>
-      <button class="modal-close" onclick="closeModal('order-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title" id="order-modal-title">New Order</div><button class="modal-close" onclick="closeModal('order-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Client Name *</label><input type="text" id="o-client"/></div>
@@ -529,10 +443,8 @@
         <div class="form-group"><label>Adults</label><input type="number" id="o-adults" value="50" min="0"/></div>
         <div class="form-group"><label>Kids</label><input type="number" id="o-kids" value="0" min="0"/></div>
         <div class="form-group"><label>Bar Service Type</label><input type="text" id="o-bar-service" placeholder="Open Bar, Cash Bar..."/></div>
-        <div class="form-group"><label>Revenue / Price ($)</label><input type="number" id="o-revenue" min="0"/></div>
-        <div class="form-group"><label>Client Status</label>
-          <select id="o-status"><option>New</option><option>Repeat</option><option>VIP</option></select>
-        </div>
+        <div class="form-group"><label>Revenue ($)</label><input type="number" id="o-revenue" min="0"/></div>
+        <div class="form-group"><label>Client Status</label><select id="o-status"><option>New</option><option>Repeat</option><option>VIP</option></select></div>
         <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="o-notes"></textarea></div>
       </div>
     </div>
@@ -543,19 +455,16 @@
   </div>
 </div>
 
-<!-- INVENTORY SPIRIT MODAL -->
+<!-- SPIRIT INVENTORY MODAL -->
 <div class="modal-overlay" id="inv-spirit-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add Spirit / Ingredient</div>
-      <button class="modal-close" onclick="closeModal('inv-spirit-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add Spirit / Ingredient</div><button class="modal-close" onclick="closeModal('inv-spirit-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-group"><label>Spirit Name *</label><input type="text" id="sp-name"/></div>
+        <div class="form-group"><label>Name *</label><input type="text" id="sp-name"/></div>
+        <div class="form-group"><label>Bottle Size</label><select id="sp-bottle-size"><option value="750">750ml</option><option value="1000">1L</option><option value="1750">1.75L (Handle)</option><option value="375">375ml</option></select></div>
         <div class="form-group"><label>Package Price ($)</label><input type="number" id="sp-pkg-price" min="0"/></div>
         <div class="form-group"><label>Units per Package</label><input type="number" id="sp-units" value="1" min="1"/></div>
-        <div class="form-group"><label>Unit Type</label><select id="sp-unit-type"><option>bottle</option><option>can</option><option>liter</option><option>kg</option><option>other</option></select></div>
         <div class="form-group"><label>Stock on Hand</label><input type="number" id="sp-stock" value="0" min="0"/></div>
         <div class="form-group"><label>Min Stock</label><input type="number" id="sp-min-stock" value="1" min="0"/></div>
         <div class="form-group"><label>Supplier</label><input type="text" id="sp-supplier"/></div>
@@ -569,13 +478,10 @@
   </div>
 </div>
 
-<!-- INVENTORY CONSUMABLE MODAL -->
+<!-- CONSUMABLE MODAL -->
 <div class="modal-overlay" id="inv-consumable-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add Consumable / Rental</div>
-      <button class="modal-close" onclick="closeModal('inv-consumable-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add Consumable / Rental</div><button class="modal-close" onclick="closeModal('inv-consumable-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Item Name *</label><input type="text" id="con-name"/></div>
@@ -597,10 +503,7 @@
 <!-- EXPENSE MODAL -->
 <div class="modal-overlay" id="expense-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Log Expense</div>
-      <button class="modal-close" onclick="closeModal('expense-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Log Expense</div><button class="modal-close" onclick="closeModal('expense-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Date *</label><input type="date" id="ex-date"/></div>
@@ -608,9 +511,7 @@
         <div class="form-group"><label>Category</label><select id="ex-category"></select></div>
         <div class="form-group"><label>Subcategory</label><input type="text" id="ex-subcategory"/></div>
         <div class="form-group"><label>Supplier</label><input type="text" id="ex-supplier"/></div>
-        <div class="form-group"><label>Payment Type</label>
-          <select id="ex-payment"><option>Credit Card</option><option>Cash</option><option>Bank Transfer</option><option>PayPal</option><option>Other</option></select>
-        </div>
+        <div class="form-group"><label>Payment Type</label><select id="ex-payment"><option>Credit Card</option><option>Cash</option><option>Bank Transfer</option><option>PayPal</option><option>Other</option></select></div>
         <div class="form-group" style="grid-column:1/-1"><label>Description</label><input type="text" id="ex-description"/></div>
         <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="ex-notes"></textarea></div>
       </div>
@@ -625,23 +526,19 @@
 <!-- SUPPLIER MODAL -->
 <div class="modal-overlay" id="supplier-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add Supplier</div>
-      <button class="modal-close" onclick="closeModal('supplier-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add Supplier</div><button class="modal-close" onclick="closeModal('supplier-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Supplier Name *</label><input type="text" id="sup-name"/></div>
         <div class="form-group"><label>Product / Item</label><input type="text" id="sup-product"/></div>
-        <div class="form-group"><label>Availability</label><input type="text" id="sup-availability" placeholder="Always available, On request..."/></div>
+        <div class="form-group"><label>Availability</label><input type="text" id="sup-availability"/></div>
         <div class="form-group"><label>Cost ($)</label><input type="number" id="sup-cost" min="0"/></div>
         <div class="form-group"><label>Deposit Required?</label><select id="sup-deposit"><option>No</option><option>Yes</option></select></div>
         <div class="form-group"><label>Contact Person</label><input type="text" id="sup-contact"/></div>
         <div class="form-group"><label>Phone</label><input type="text" id="sup-phone"/></div>
         <div class="form-group"><label>Email</label><input type="text" id="sup-email"/></div>
-        <div class="form-group"><label>Address</label><input type="text" id="sup-address"/></div>
         <div class="form-group"><label>Rating (1-5)</label><input type="number" id="sup-rating" min="1" max="5" value="3"/></div>
-        <div class="form-group" style="grid-column:1/-1"><label>Pros / Notes</label><textarea id="sup-notes"></textarea></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="sup-notes"></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -654,10 +551,7 @@
 <!-- EQUIPMENT MODAL -->
 <div class="modal-overlay" id="equipment-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add Equipment</div>
-      <button class="modal-close" onclick="closeModal('equipment-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add Equipment</div><button class="modal-close" onclick="closeModal('equipment-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Product Name *</label><input type="text" id="eq-name"/></div>
@@ -666,7 +560,7 @@
         <div class="form-group"><label>Quantity</label><input type="number" id="eq-qty" value="1" min="1"/></div>
         <div class="form-group"><label>Supplier</label><input type="text" id="eq-supplier"/></div>
         <div class="form-group"><label>Cost ($)</label><input type="number" id="eq-cost" min="0"/></div>
-        <div class="form-group"><label>Location</label><input type="text" id="eq-location" placeholder="Storage Warehouse, Vehicle..."/></div>
+        <div class="form-group"><label>Location</label><input type="text" id="eq-location" placeholder="Storage, Vehicle..."/></div>
         <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="eq-notes"></textarea></div>
       </div>
     </div>
@@ -680,18 +574,13 @@
 <!-- TODO MODAL -->
 <div class="modal-overlay" id="todo-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Add Task</div>
-      <button class="modal-close" onclick="closeModal('todo-modal')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Add Task</div><button class="modal-close" onclick="closeModal('todo-modal')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group" style="grid-column:1/-1"><label>Task *</label><input type="text" id="td-task"/></div>
-        <div class="form-group"><label>Assigned To</label><input type="text" id="td-assigned" placeholder="Event Manager..."/></div>
+        <div class="form-group"><label>Assigned To</label><input type="text" id="td-assigned"/></div>
         <div class="form-group"><label>Deadline</label><input type="date" id="td-deadline"/></div>
-        <div class="form-group"><label>Progress</label>
-          <select id="td-progress"><option>Not started</option><option>In progress</option><option>Done</option></select>
-        </div>
+        <div class="form-group"><label>Progress</label><select id="td-progress"><option>Not started</option><option>In progress</option><option>Done</option></select></div>
         <div class="form-group" style="grid-column:1/-1"><label>Notes</label><textarea id="td-notes"></textarea></div>
       </div>
     </div>
@@ -711,620 +600,605 @@
   <div id="pdf-content"></div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
 // ================================================================
-//  STATE
+// STATE
 // ================================================================
 let DB = {
-  orders: [],
-  spirits: [],
-  consumables: [],
-  expenses: [],
-  suppliers: [],
-  equipment: [],
-  todos: [],
-  settings: {
-    bizName: 'BarOps', ownerName: '', phone: '', email: '', website: '',
-    priceAdult: 35, priceKid: 15, drinksPerAdultHour: 1.5, drinksPerKidHour: 0.5,
-    revenueTarget: 100000,
-    drinkDefaults: [
-      { name:'Margarita', oz:4 }, { name:'Mojito', oz:5 }, { name:'Gin & Tonic', oz:6 },
-      { name:'Negroni', oz:3.5 }, { name:'Cuba Libre', oz:6 }, { name:'Vodka Soda', oz:6 },
-      { name:'Wine', oz:5 }, { name:'Beer', oz:12 }, { name:'Soft Drink', oz:8 }
+  orders:[],spirits:[],consumables:[],expenses:[],suppliers:[],equipment:[],todos:[],
+  settings:{
+    bizName:'BarOps',ownerName:'',phone:'',email:'',
+    priceAdult:35,priceKid:15,revenueTarget:100000,
+    spiritsLibrary:[
+      {id:'sl1',name:'Tequila',oz:2,bottleSizes:[750,1750]},
+      {id:'sl2',name:'Vodka',oz:2,bottleSizes:[750,1750]},
+      {id:'sl3',name:'Whiskey',oz:2,bottleSizes:[750,1750]},
+      {id:'sl4',name:'Gin',oz:2,bottleSizes:[750,1750]},
+      {id:'sl5',name:'Rum',oz:2,bottleSizes:[750,1750]},
+      {id:'sl6',name:'White Wine',oz:5,bottleSizes:[750]},
+      {id:'sl7',name:'Red Wine',oz:5,bottleSizes:[750]},
+      {id:'sl8',name:'Beer',oz:12,bottleSizes:[355]}
     ],
-    expenseCategories: ['Alcohol & Beverages','Mixers & Garnish','Labor & Staff','Equipment Rental',
-      'Event Setup & Rentals','Venue Fees','Marketing & Sales','Tools & Bar Equipment',
-      'Licenses & Insurance','Other'],
-    staffRoles: ['Event Manager','Head Bartender','Bartender','Barback','Junior Bartender','Sales & Client Manager'],
-    eventTypes: ['Birthday Party','Wedding','Corporate Event','Festival / Large Event',
+    recipes:[
+      {id:'r1',name:'Margarita',spiritId:'sl1',ingredients:[
+        {name:'Tequila',qty:2,unit:'oz'},{name:'Triple Sec',qty:0.75,unit:'oz'},
+        {name:'Lime Juice',qty:1,unit:'oz'},{name:'Agave Syrup',qty:0.5,unit:'oz'},
+        {name:'Salt (rim)',qty:1,unit:'pinch'},{name:'Lime Wedge',qty:1,unit:'pc'}
+      ]},
+      {id:'r2',name:'Vodka Soda',spiritId:'sl2',ingredients:[
+        {name:'Vodka',qty:2,unit:'oz'},{name:'Soda Water',qty:4,unit:'oz'},
+        {name:'Lime Wedge',qty:1,unit:'pc'}
+      ]},
+      {id:'r3',name:'Whiskey Sour',spiritId:'sl3',ingredients:[
+        {name:'Whiskey',qty:2,unit:'oz'},{name:'Lemon Juice',qty:1,unit:'oz'},
+        {name:'Simple Syrup',qty:0.75,unit:'oz'},{name:'Egg White',qty:0.5,unit:'oz'},
+        {name:'Cherry',qty:1,unit:'pc'}
+      ]}
+    ],
+    staticCosts:[
+      {id:'sc1',name:'Plastic Cups',costPerGuest:0.50},
+      {id:'sc2',name:'Paper Straws',costPerGuest:0.15},
+      {id:'sc3',name:'Napkins',costPerGuest:0.10},
+      {id:'sc4',name:'Ice (per guest)',costPerGuest:0.75}
+    ],
+    expenseCategories:['Alcohol & Beverages','Mixers & Garnish','Labor & Staff',
+      'Equipment Rental','Event Setup & Rentals','Venue Fees','Marketing & Sales',
+      'Tools & Bar Equipment','Licenses & Insurance','Other'],
+    staffRoles:['Event Manager','Head Bartender','Bartender','Barback','Junior Bartender','Sales & Client Manager'],
+    eventTypes:['Birthday Party','Wedding','Corporate Event','Festival / Large Event',
       'Cocktail Bar Service','Private Party','Cash Bar Service','Other']
   }
 };
 
-let editingId = { order:null, spirit:null, consumable:null, expense:null, supplier:null, equipment:null, todo:null };
-let calcMenu = [];
-let calcLabor = [];
-let orderCounter = 1;
+let editingId={order:null,spirit:null,consumable:null,expense:null,supplier:null,equipment:null,todo:null};
+let calcMenu=[];
+let calcLabor=[];
+let calcPace='avg';
+let orderCounter=1;
+
+const PACE_MAP={lite:0.75,avg:1.0,above:1.25,heavy:1.5};
+const OZ_PER_ML=0.033814;
 
 // ================================================================
-//  PERSISTENCE
+// PERSISTENCE
 // ================================================================
-function loadDB() {
-  try {
-    const saved = localStorage.getItem('barops_db');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      DB = { ...DB, ...parsed };
-      DB.settings = { ...DB.settings, ...parsed.settings };
-    }
-  } catch(e) {}
-  // derive next order counter
-  if (DB.orders.length) {
-    const nums = DB.orders.map(o => parseInt(o.id.replace('OT-',''))).filter(n => !isNaN(n));
-    if (nums.length) orderCounter = Math.max(...nums) + 1;
+function loadDB(){
+  try{
+    const s=localStorage.getItem('barops_v2');
+    if(s){const p=JSON.parse(s);DB={...DB,...p};DB.settings={...DB.settings,...p.settings};}
+  }catch(e){}
+  if(DB.orders.length){
+    const nums=DB.orders.map(o=>parseInt(o.id.replace('OT-',''))).filter(n=>!isNaN(n));
+    if(nums.length)orderCounter=Math.max(...nums)+1;
   }
 }
-
-function saveDB() {
-  try { localStorage.setItem('barops_db', JSON.stringify(DB)); } catch(e) {}
-}
-
-function exportData() {
-  const blob = new Blob([JSON.stringify(DB, null, 2)], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'barops_backup_' + new Date().toISOString().slice(0,10) + '.json';
-  a.click();
+function saveDB(){try{localStorage.setItem('barops_v2',JSON.stringify(DB));}catch(e){}}
+function exportData(){
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='barops_v2_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
   toast('Backup exported!');
 }
-
-function importData(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    try {
-      const parsed = JSON.parse(ev.target.result);
-      DB = { ...DB, ...parsed };
-      DB.settings = { ...DB.settings, ...parsed.settings };
-      saveDB(); renderAll(); toast('Backup imported successfully!');
-    } catch { toast('Invalid backup file.'); }
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{const p=JSON.parse(ev.target.result);DB={...DB,...p};DB.settings={...DB.settings,...p.settings};saveDB();renderAll();toast('Backup imported!');}
+    catch{toast('Invalid file.');}
   };
-  r.readAsText(file);
-  e.target.value = '';
+  r.readAsText(f);e.target.value='';
 }
 
 // ================================================================
-//  UI HELPERS
+// HELPERS
 // ================================================================
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('panel-'+name).classList.add('active');
-  if (name === 'calculator') populateCalcOrderSelect();
-  if (name === 'settings') renderSettings();
+function showTab(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+n).classList.add('active');
+  document.getElementById('panel-'+n).classList.add('active');
+  if(n==='calculator'){populateCalcOrderSelect();renderCalcEventTypes();}
+  if(n==='settings')renderSettings();
 }
-
-function openModal(id) {
+function openModal(id){
   document.getElementById(id).classList.add('open');
-  // pre-fill date fields today
-  const today = new Date().toISOString().slice(0,10);
-  const df = document.querySelector('#'+id+' input[type=date]');
-  if (df && !df.value) df.value = today;
-  // populate selects from settings
-  if (id === 'order-modal') populateSelect('o-event-type', DB.settings.eventTypes);
-  if (id === 'expense-modal') { populateSelect('ex-category', DB.settings.expenseCategories); document.getElementById('ex-date').value = today; }
+  const t=new Date().toISOString().slice(0,10);
+  const df=document.querySelector('#'+id+' input[type=date]');
+  if(df&&!df.value)df.value=t;
+  if(id==='order-modal')populateSelect('o-event-type',DB.settings.eventTypes);
+  if(id==='expense-modal'){populateSelect('ex-category',DB.settings.expenseCategories);document.getElementById('ex-date').value=t;}
 }
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-  clearEditingId();
-}
-
-function clearEditingId() {
-  Object.keys(editingId).forEach(k => editingId[k] = null);
-}
-
-function populateSelect(id, arr) {
-  const el = document.getElementById(id); if (!el) return;
-  el.innerHTML = arr.map(v => `<option>${v}</option>`).join('');
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-function fmtCurrency(n) { return '$' + (parseFloat(n)||0).toFixed(2); }
-function fmtDate(d) { if (!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function genId() { return 'OT-' + String(orderCounter++).padStart(4,'0'); }
-function stars(n) { return '★'.repeat(Math.min(5,Math.max(0,parseInt(n)||0))) + '☆'.repeat(5-Math.min(5,Math.max(0,parseInt(n)||0))); }
+function closeModal(id){document.getElementById(id).classList.remove('open');clearEditingId();}
+function clearEditingId(){Object.keys(editingId).forEach(k=>editingId[k]=null);}
+function populateSelect(id,arr){const el=document.getElementById(id);if(!el)return;el.innerHTML=arr.map(v=>`<option>${v}</option>`).join('');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function fc(n){return '$'+(parseFloat(n)||0).toFixed(2);}
+function fd(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function genId(){return'OT-'+String(orderCounter++).padStart(4,'0');}
+function stars(n){const s=Math.min(5,Math.max(0,parseInt(n)||0));return'★'.repeat(s)+'☆'.repeat(5-s);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
 // ================================================================
-//  ORDERS
+// ORDERS
 // ================================================================
-function saveOrder() {
-  const client = document.getElementById('o-client').value.trim();
-  if (!client) { toast('Client name is required.'); return; }
-  const order = {
-    id: editingId.order || genId(),
-    client, phone: document.getElementById('o-phone').value,
-    email: document.getElementById('o-email').value,
-    orderDate: document.getElementById('o-order-date').value,
-    eventDate: document.getElementById('o-event-date').value,
-    eventType: document.getElementById('o-event-type').value,
-    location: document.getElementById('o-location').value,
-    adults: parseInt(document.getElementById('o-adults').value)||0,
-    kids: parseInt(document.getElementById('o-kids').value)||0,
-    barService: document.getElementById('o-bar-service').value,
-    revenue: parseFloat(document.getElementById('o-revenue').value)||0,
-    status: document.getElementById('o-status').value,
-    notes: document.getElementById('o-notes').value
-  };
-  if (editingId.order) {
-    const i = DB.orders.findIndex(o => o.id === editingId.order);
-    if (i >= 0) DB.orders[i] = order;
-  } else {
-    DB.orders.unshift(order);
-  }
-  saveDB(); renderOrders(); closeModal('order-modal');
-  toast(editingId.order ? 'Order updated!' : 'Order saved!');
-  // clear form
-  ['o-client','o-phone','o-email','o-location','o-bar-service','o-notes'].forEach(id => document.getElementById(id).value='');
-  ['o-adults'].forEach(id => document.getElementById(id).value='50');
-  ['o-kids','o-revenue'].forEach(id => document.getElementById(id).value='0');
-}
-
-function editOrder(id) {
-  const o = DB.orders.find(x => x.id === id); if (!o) return;
-  editingId.order = id;
+function openOrderModal(id){
+  editingId.order=id||null;
   openModal('order-modal');
-  document.getElementById('order-modal-title').textContent = 'Edit Order — ' + o.id;
-  setTimeout(() => {
-    ['client','phone','email','order-date','event-date','location','bar-service','revenue','notes'].forEach(f => {
-      const el = document.getElementById('o-'+f); if (el) el.value = o[f.replace('-','').replace('order','order').replace('event','event').replace('barService','barService')] ?? o[f] ?? '';
-    });
-    document.getElementById('o-client').value = o.client;
-    document.getElementById('o-phone').value = o.phone||'';
-    document.getElementById('o-email').value = o.email||'';
-    document.getElementById('o-order-date').value = o.orderDate||'';
-    document.getElementById('o-event-date').value = o.eventDate||'';
-    document.getElementById('o-location').value = o.location||'';
-    document.getElementById('o-bar-service').value = o.barService||'';
-    document.getElementById('o-revenue').value = o.revenue||0;
-    document.getElementById('o-notes').value = o.notes||'';
-    document.getElementById('o-adults').value = o.adults||0;
-    document.getElementById('o-kids').value = o.kids||0;
-    document.getElementById('o-status').value = o.status||'New';
-    populateSelect('o-event-type', DB.settings.eventTypes);
-    document.getElementById('o-event-type').value = o.eventType||'';
-  }, 50);
+  if(id){
+    const o=DB.orders.find(x=>x.id===id);if(!o)return;
+    document.getElementById('order-modal-title').textContent='Edit Order — '+o.id;
+    setTimeout(()=>{
+      document.getElementById('o-client').value=o.client||'';
+      document.getElementById('o-phone').value=o.phone||'';
+      document.getElementById('o-email').value=o.email||'';
+      document.getElementById('o-order-date').value=o.orderDate||'';
+      document.getElementById('o-event-date').value=o.eventDate||'';
+      document.getElementById('o-location').value=o.location||'';
+      document.getElementById('o-bar-service').value=o.barService||'';
+      document.getElementById('o-revenue').value=o.revenue||0;
+      document.getElementById('o-notes').value=o.notes||'';
+      document.getElementById('o-adults').value=o.adults||50;
+      document.getElementById('o-kids').value=o.kids||0;
+      document.getElementById('o-status').value=o.status||'New';
+      populateSelect('o-event-type',DB.settings.eventTypes);
+      document.getElementById('o-event-type').value=o.eventType||'';
+    },50);
+  }else{
+    document.getElementById('order-modal-title').textContent='New Order';
+    ['o-client','o-phone','o-email','o-location','o-bar-service','o-notes'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('o-adults').value=50;document.getElementById('o-kids').value=0;document.getElementById('o-revenue').value=0;
+  }
 }
-
-function deleteOrder(id) {
-  if (!confirm('Delete this order?')) return;
-  DB.orders = DB.orders.filter(o => o.id !== id);
-  saveDB(); renderOrders(); toast('Order deleted.');
+function saveOrder(){
+  const client=document.getElementById('o-client').value.trim();
+  if(!client){toast('Client name required.');return;}
+  const o={
+    id:editingId.order||genId(),client,
+    phone:document.getElementById('o-phone').value,email:document.getElementById('o-email').value,
+    orderDate:document.getElementById('o-order-date').value,eventDate:document.getElementById('o-event-date').value,
+    eventType:document.getElementById('o-event-type').value,location:document.getElementById('o-location').value,
+    adults:parseInt(document.getElementById('o-adults').value)||0,kids:parseInt(document.getElementById('o-kids').value)||0,
+    barService:document.getElementById('o-bar-service').value,revenue:parseFloat(document.getElementById('o-revenue').value)||0,
+    status:document.getElementById('o-status').value,notes:document.getElementById('o-notes').value
+  };
+  if(editingId.order){const i=DB.orders.findIndex(x=>x.id===editingId.order);if(i>=0)DB.orders[i]=o;}
+  else DB.orders.unshift(o);
+  saveDB();renderOrders();closeModal('order-modal');toast(editingId.order?'Order updated!':'Order saved!');
 }
-
-function renderOrders() {
-  const tbody = document.getElementById('orders-tbody');
-  if (!DB.orders.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><p>No orders yet. Add your first client!</p></div></td></tr>`; renderOrderStats(); return; }
-  tbody.innerHTML = DB.orders.map(o => `
-    <tr>
-      <td><span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:12px;">${o.id}</span></td>
-      <td><strong>${o.client}</strong>${o.email?`<div style="font-size:11px;color:var(--text-muted)">${o.email}</div>`:''}</td>
-      <td>${fmtDate(o.eventDate)}</td>
-      <td>${o.eventType||'—'}</td>
-      <td>${(o.adults||0)+(o.kids||0)} <span style="color:var(--text-muted);font-size:11px">(${o.adults||0}A/${o.kids||0}K)</span></td>
-      <td>${o.location||'—'}</td>
-      <td><span class="badge badge-${(o.status||'new').toLowerCase()}">${o.status||'New'}</span></td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(o.revenue)}</td>
-      <td><div class="actions">
-        <button class="btn btn-secondary btn-sm" onclick="editOrder('${o.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">Del</button>
-      </div></td>
-    </tr>`).join('');
+function deleteOrder(id){if(!confirm('Delete this order?'))return;DB.orders=DB.orders.filter(o=>o.id!==id);saveDB();renderOrders();}
+function renderOrders(){
+  const tbody=document.getElementById('orders-tbody');
+  if(!DB.orders.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><p>No orders yet.</p></div></td></tr>`;renderOrderStats();return;}
+  tbody.innerHTML=DB.orders.map(o=>`<tr>
+    <td><span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:12px;">${o.id}</span></td>
+    <td><strong>${o.client}</strong>${o.email?`<div style="font-size:11px;color:var(--text-muted)">${o.email}</div>`:''}</td>
+    <td>${fd(o.eventDate)}</td><td>${o.eventType||'—'}</td>
+    <td>${(o.adults||0)+(o.kids||0)} <span style="color:var(--text-muted);font-size:11px">(${o.adults||0}A/${o.kids||0}K)</span></td>
+    <td>${o.location||'—'}</td>
+    <td><span class="badge badge-${(o.status||'new').toLowerCase()}">${o.status||'New'}</span></td>
+    <td style="font-family:'DM Mono',monospace;">${fc(o.revenue)}</td>
+    <td><div class="actions">
+      <button class="btn btn-secondary btn-sm" onclick="openOrderModal('${o.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">Del</button>
+    </div></td>
+  </tr>`).join('');
   renderOrderStats();
 }
-
-function renderOrderStats() {
-  const total = DB.orders.reduce((s,o) => s+o.revenue, 0);
-  const target = DB.settings.revenueTarget || 100000;
-  const gap = target - total;
-  const upcoming = DB.orders.filter(o => o.eventDate && new Date(o.eventDate) >= new Date()).length;
-  document.getElementById('order-stats').innerHTML = `
+function renderOrderStats(){
+  const total=DB.orders.reduce((s,o)=>s+o.revenue,0);
+  const target=DB.settings.revenueTarget||100000;
+  const gap=target-total;
+  const upcoming=DB.orders.filter(o=>o.eventDate&&new Date(o.eventDate)>=new Date()).length;
+  document.getElementById('order-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${DB.orders.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value accent">${fmtCurrency(total)}</div></div>
-    <div class="stat-card"><div class="stat-label">Revenue Target</div><div class="stat-value">${fmtCurrency(target)}</div></div>
-    <div class="stat-card"><div class="stat-label">Gap to Target</div><div class="stat-value ${gap>0?'danger':'success'}">${fmtCurrency(gap)}</div></div>
-    <div class="stat-card"><div class="stat-label">Upcoming Events</div><div class="stat-value">${upcoming}</div></div>
-  `;
+    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value accent">${fc(total)}</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue Target</div><div class="stat-value">${fc(target)}</div></div>
+    <div class="stat-card"><div class="stat-label">Gap to Target</div><div class="stat-value ${gap>0?'danger':'success'}">${fc(gap)}</div></div>
+    <div class="stat-card"><div class="stat-label">Upcoming Events</div><div class="stat-value">${upcoming}</div></div>`;
 }
 
 // ================================================================
-//  EVENT CALCULATOR
+// CALCULATOR — CORE DRINK MATH
 // ================================================================
-function populateCalcOrderSelect() {
-  const sel = document.getElementById('calc-order-select');
-  sel.innerHTML = '<option value="">— New Event —</option>' +
-    DB.orders.map(o => `<option value="${o.id}">${o.id} — ${o.client} (${fmtDate(o.eventDate)})</option>`).join('');
-}
+// Formula:
+// totalDrinksPerSpirit = adults * pace * hours * (spiritPct/100)
+// oz needed = totalDrinksPerSpirit * ozPerServing
+// bottles needed = ceil(oz_needed / (bottleSizeML * OZ_PER_ML))
 
-function loadOrderIntoCalc() {
-  const id = document.getElementById('calc-order-select').value;
-  if (!id) return;
-  const o = DB.orders.find(x => x.id === id); if (!o) return;
-  document.getElementById('calc-client').value = o.client||'';
-  document.getElementById('calc-date').value = o.eventDate||'';
-  document.getElementById('calc-type').value = o.eventType||'Birthday Party';
-  document.getElementById('calc-adults').value = o.adults||50;
-  document.getElementById('calc-kids').value = o.kids||0;
-  document.getElementById('calc-hours').value = 4;
-  document.getElementById('calc-price-adult').value = o.revenue && o.adults ? (o.revenue/o.adults).toFixed(2) : DB.settings.priceAdult;
-  document.getElementById('calc-price-kid').value = DB.settings.priceKid;
+function setPace(p){
+  calcPace=p;
+  ['lite','avg','above','heavy'].forEach(x=>document.getElementById('pace-'+x).classList.remove('active'));
+  document.getElementById('pace-'+p).classList.add('active');
   recalc();
 }
 
-function initCalc() {
-  document.getElementById('calc-price-adult').value = DB.settings.priceAdult;
-  document.getElementById('calc-price-kid').value = DB.settings.priceKid;
-  calcMenu = [{ drink: DB.settings.drinkDefaults[0]?.name||'Margarita', pct: 100 }];
-  calcLabor = [];
-  renderMenuList();
-  renderLaborList();
+function populateCalcOrderSelect(){
+  const sel=document.getElementById('calc-order-select');
+  sel.innerHTML='<option value="">— New Event —</option>'+
+    DB.orders.map(o=>`<option value="${o.id}">${o.id} — ${o.client} (${fd(o.eventDate)})</option>`).join('');
+}
+function renderCalcEventTypes(){
+  populateSelect('calc-type',DB.settings.eventTypes);
+}
+function loadOrderIntoCalc(){
+  const id=document.getElementById('calc-order-select').value;if(!id)return;
+  const o=DB.orders.find(x=>x.id===id);if(!o)return;
+  document.getElementById('calc-client').value=o.client||'';
+  document.getElementById('calc-date').value=o.eventDate||'';
+  document.getElementById('calc-type').value=o.eventType||'';
+  document.getElementById('calc-adults').value=o.adults||40;
+  document.getElementById('calc-kids').value=o.kids||0;
+  document.getElementById('calc-price-adult').value=o.revenue&&o.adults?(o.revenue/o.adults).toFixed(2):DB.settings.priceAdult;
+  document.getElementById('calc-price-kid').value=DB.settings.priceKid;
   recalc();
 }
 
-function addDrinkRow() {
-  calcMenu.push({ drink: DB.settings.drinkDefaults[0]?.name||'Cocktail', pct: 0 });
-  renderMenuList(); recalc();
+function initCalc(){
+  document.getElementById('calc-price-adult').value=DB.settings.priceAdult;
+  document.getElementById('calc-price-kid').value=DB.settings.priceKid;
+  // Default menu from spirits library
+  const lib=DB.settings.spiritsLibrary||[];
+  if(lib.length>=3){
+    calcMenu=[
+      {spiritId:lib[0].id,pct:50,bottleSize:750},
+      {spiritId:lib[1].id,pct:30,bottleSize:750},
+      {spiritId:lib[2].id,pct:20,bottleSize:750}
+    ];
+  }else if(lib.length>0){
+    calcMenu=[{spiritId:lib[0].id,pct:100,bottleSize:750}];
+  }
+  calcLabor=[];
+  renderDrinkMenu();renderLaborList();recalc();
 }
 
-function removeDrinkRow(i) { calcMenu.splice(i,1); renderMenuList(); recalc(); }
+function addDrinkToMenu(){
+  const lib=DB.settings.spiritsLibrary||[];
+  if(!lib.length){toast('Add spirits in Settings first.');return;}
+  calcMenu.push({spiritId:lib[0].id,pct:0,bottleSize:750});
+  renderDrinkMenu();recalc();
+}
+function removeDrinkFromMenu(i){calcMenu.splice(i,1);renderDrinkMenu();recalc();}
 
-function renderMenuList() {
-  const drinks = DB.settings.drinkDefaults.map(d=>d.name);
-  document.getElementById('menu-list').innerHTML = calcMenu.map((row,i) => `
-    <div style="display:grid;grid-template-columns:1fr 80px 80px auto;gap:8px;align-items:center;margin-bottom:8px;">
-      <select onchange="calcMenu[${i}].drink=this.value;recalc()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;">
-        ${drinks.map(d=>`<option ${d===row.drink?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <input type="number" value="${row.pct}" min="0" max="100" placeholder="%" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;text-align:center;"
-        oninput="calcMenu[${i}].pct=parseFloat(this.value)||0;recalc()"/>
-      <span style="font-size:11px;color:var(--text-muted);text-align:center;" id="menu-qty-${i}">0 drinks</span>
-      <button class="btn btn-danger btn-sm" onclick="removeDrinkRow(${i})">✕</button>
+function renderDrinkMenu(){
+  const lib=DB.settings.spiritsLibrary||[];
+  const spiritOptions=lib.map(s=>`<option value="${s.id}">${s.name} (${s.oz}oz/serving)</option>`).join('');
+  document.getElementById('drink-menu-list').innerHTML=calcMenu.map((row,i)=>{
+    const spirit=lib.find(s=>s.id===row.spiritId)||lib[0]||{};
+    const bottleSizes=(spirit.bottleSizes||[750]).map(bs=>`<option value="${bs}" ${bs===row.bottleSize?'selected':''}>${bs===750?'750ml':bs===1750?'1.75L (Handle)':bs===1000?'1L':bs+'ml'}</option>`).join('');
+    return `<div class="inline-row" style="grid-template-columns:2fr 80px 140px auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Spirit / Drink</div>
+        <select onchange="calcMenu[${i}].spiritId=this.value;renderDrinkMenu();recalc()">${spiritOptions.replace(`value="${row.spiritId}"`,`value="${row.spiritId}" selected`)}</select>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Pop %</div>
+        <input type="number" value="${row.pct}" min="0" max="100" placeholder="%" oninput="calcMenu[${i}].pct=parseFloat(this.value)||0;recalc()"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Bottle Size</div>
+        <select onchange="calcMenu[${i}].bottleSize=parseInt(this.value);recalc()">${bottleSizes}</select>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="removeDrinkFromMenu(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function recalc(){
+  const adults=parseFloat(document.getElementById('calc-adults').value)||0;
+  const kids=parseFloat(document.getElementById('calc-kids').value)||0;
+  const hours=parseFloat(document.getElementById('calc-hours').value)||0;
+  const priceAdult=parseFloat(document.getElementById('calc-price-adult').value)||0;
+  const priceKid=parseFloat(document.getElementById('calc-price-kid').value)||0;
+  const pace=PACE_MAP[calcPace]||1.0;
+  const lib=DB.settings.spiritsLibrary||[];
+
+  // Revenue
+  const revTarget=(adults*priceAdult)+(kids*priceKid);
+
+  // Total adult drinks (kids get soft drinks only, no alcohol calc)
+  const totalAdultDrinks=adults*pace*hours;
+
+  // Per-spirit calculations
+  const totalPct=calcMenu.reduce((s,r)=>s+r.pct,0);
+  const pctOk=Math.abs(totalPct-100)<0.01;
+  document.getElementById('pct-warning').style.display=pctOk?'none':'block';
+
+  let drinkRows=[];
+  let totalBottleCost=0;
+  calcMenu.forEach(row=>{
+    const spirit=lib.find(s=>s.id===row.spiritId);
+    if(!spirit)return;
+    const drinksForSpirit=totalAdultDrinks*(row.pct/100);
+    const ozNeeded=drinksForSpirit*spirit.oz;
+    const bottleSizeOz=row.bottleSize*OZ_PER_ML;
+    const bottlesNeeded=Math.ceil(ozNeeded/bottleSizeOz);
+    // Cost lookup from inventory
+    const invItem=DB.spirits.find(s=>s.name.toLowerCase()===spirit.name.toLowerCase());
+    const costPerBottle=invItem?invItem.pkgPrice/invItem.units:0;
+    const spiritCost=bottlesNeeded*costPerBottle;
+    totalBottleCost+=spiritCost;
+    drinkRows.push({spirit,row,drinksForSpirit:Math.ceil(drinksForSpirit),ozNeeded:ozNeeded.toFixed(1),bottlesNeeded,bottleSizeOz:row.bottleSize,costPerBottle,spiritCost});
+  });
+
+  // Shopping list (recipe ingredients)
+  renderShoppingList(drinkRows,adults,kids,hours,pace);
+
+  // Static costs
+  const totalGuests=adults+kids;
+  let staticTotal=0;
+  const staticRows=(DB.settings.staticCosts||[]).map(sc=>{
+    const cost=sc.costPerGuest*totalGuests;staticTotal+=cost;return{...sc,cost};
+  });
+  renderStaticCostsCalc(staticRows,totalGuests);
+
+  // Labor
+  const laborCost=calcLabor.reduce((s,l)=>s+l.hours*l.rate,0);
+
+  const totalCost=totalBottleCost+staticTotal+laborCost;
+  const profit=revTarget-totalCost;
+  const margin=revTarget>0?((profit/revTarget)*100).toFixed(1):0;
+  const totalBottles=drinkRows.reduce((s,r)=>s+r.bottlesNeeded,0);
+
+  // Summary panel
+  const row=(label,val,col)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
+    <span style="color:var(--text-muted);font-size:13px;">${label}</span>
+    <span style="font-family:'DM Mono',monospace;font-size:13px;color:${col||'var(--text)'};">${val}</span></div>`;
+
+  let spiritSummary=drinkRows.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(42,48,48,.4);">
+      <div><span style="color:var(--text);font-size:13px;">${r.spirit.name}</span><span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${r.row.pct}% · ${r.spirit.oz}oz · ${r.row.bottleSize}ml btl</span></div>
+      <div style="text-align:right;">
+        <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:13px;font-weight:600;">${r.bottlesNeeded} btl</span>
+        ${r.costPerBottle>0?`<div style="font-size:11px;color:var(--text-muted)">${fc(r.spiritCost)}</div>`:''}
+      </div>
     </div>`).join('');
+
+  document.getElementById('calc-summary').innerHTML=`
+    ${row('Adults',adults)}
+    ${row('Kids',kids)}
+    ${row('Pace',PACE_MAP[calcPace]+' drinks/hr')}
+    ${row('Hours',hours+'h')}
+    ${row('Total Adult Drinks',Math.ceil(totalAdultDrinks))}
+    <div class="divider" style="margin:10px 0;"></div>
+    <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Bottles Needed</div>
+    ${spiritSummary}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:2px;">
+      <span style="font-size:13px;font-weight:600;">Total Bottles</span>
+      <span style="font-family:'DM Mono',monospace;color:var(--accent);font-size:15px;font-weight:700;">${totalBottles}</span>
+    </div>
+    <div class="divider" style="margin:10px 0;"></div>
+    <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Financials</div>
+    ${row('Revenue',fc(revTarget),'var(--accent)')}
+    ${row('Spirits Cost',fc(totalBottleCost),'var(--danger)')}
+    ${row('Static Costs',fc(staticTotal),'var(--danger)')}
+    ${row('Labor Cost',fc(laborCost),'var(--danger)')}
+    ${row('Total Costs',fc(totalCost),'var(--danger)')}
+    <div style="background:rgba(92,187,140,.08);border:1px solid rgba(92,187,140,.2);border-radius:10px;padding:14px;margin-top:10px;">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Event Profit</div>
+      <div style="font-size:30px;font-weight:700;font-family:'DM Mono',monospace;color:${profit>=0?'var(--success)':'var(--danger)'};">${fc(profit)}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Margin: ${margin}%</div>
+    </div>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="stat-card" style="padding:10px 12px;"><div class="stat-label">Total Bottles</div><div class="stat-value" style="font-size:18px;">${totalBottles}</div></div>
+      <div class="stat-card" style="padding:10px 12px;"><div class="stat-label">Total Guests</div><div class="stat-value" style="font-size:18px;">${totalGuests}</div></div>
+    </div>`;
+
+  // Store for PDF
+  window._calcState={adults,kids,hours,priceAdult,priceKid,pace,revTarget,totalAdultDrinks,drinkRows,totalBottles,totalBottleCost,staticRows,staticTotal,laborCost,totalCost,profit,margin,totalGuests};
 }
 
-function addLaborRow() {
-  calcLabor.push({ role: DB.settings.staffRoles[0]||'Bartender', hours:4, rate:20 });
-  renderLaborList();
+function renderShoppingList(drinkRows,adults,kids,hours,pace){
+  const recipes=DB.settings.recipes||[];
+  // Aggregate all ingredients across all drinks
+  const aggregate={};
+  drinkRows.forEach(dr=>{
+    // find matching recipe by spiritId
+    const recipe=recipes.find(r=>r.spiritId===dr.row.spiritId);
+    if(!recipe)return;
+    const numDrinks=dr.drinksForSpirit;
+    recipe.ingredients.forEach(ing=>{
+      const key=ing.name+'__'+ing.unit;
+      if(!aggregate[key])aggregate[key]={name:ing.name,unit:ing.unit,qty:0};
+      aggregate[key].qty+=ing.qty*numDrinks;
+    });
+  });
+
+  const items=Object.values(aggregate);
+  const el=document.getElementById('shopping-list-output');
+  if(!items.length){el.innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add recipes in Settings to see a shopping list here.</div>`;return;}
+
+  el.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;">
+    ${items.map(it=>`<div class="shop-item">
+      <span style="font-size:13px;">${it.name}</span>
+      <span class="shop-qty">${it.qty%1===0?it.qty:it.qty.toFixed(1)} ${it.unit}</span>
+    </div>`).join('')}
+  </div>`;
 }
 
-function removeLaborRow(i) { calcLabor.splice(i,1); renderLaborList(); recalc(); }
+function renderStaticCostsCalc(staticRows,totalGuests){
+  const el=document.getElementById('static-costs-calc');
+  if(!staticRows.length){el.innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add static cost items in Settings.</div>`;return;}
+  const total=staticRows.reduce((s,r)=>s+r.cost,0);
+  el.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;">
+    ${staticRows.map(r=>`<div class="shop-item">
+      <span style="font-size:13px;">${r.name} <span style="color:var(--text-muted);font-size:11px;">(${fc(r.costPerGuest)}/guest × ${totalGuests})</span></span>
+      <span class="shop-qty">${fc(r.cost)}</span>
+    </div>`).join('')}
+    <div class="shop-item" style="font-weight:600;border-top:1px solid var(--border);margin-top:4px;padding-top:8px;">
+      <span>Total Static Costs</span>
+      <span style="font-family:'DM Mono',monospace;color:var(--accent);">${fc(total)}</span>
+    </div>
+  </div>`;
+}
 
-function renderLaborList() {
-  document.getElementById('labor-list').innerHTML = calcLabor.map((row,i) => `
-    <div style="display:grid;grid-template-columns:1fr 60px 70px auto;gap:8px;align-items:center;margin-bottom:8px;">
-      <input type="text" value="${row.role}" placeholder="Role" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;"
-        oninput="calcLabor[${i}].role=this.value"/>
-      <input type="number" value="${row.hours}" min="0" placeholder="hrs" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;text-align:center;"
-        oninput="calcLabor[${i}].hours=parseFloat(this.value)||0;recalc()"/>
-      <input type="number" value="${row.rate}" min="0" placeholder="$/hr" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;text-align:center;"
-        oninput="calcLabor[${i}].rate=parseFloat(this.value)||0;recalc()"/>
+function addLaborRow(){calcLabor.push({role:DB.settings.staffRoles[0]||'Bartender',hours:4,rate:20});renderLaborList();}
+function removeLaborRow(i){calcLabor.splice(i,1);renderLaborList();recalc();}
+function renderLaborList(){
+  document.getElementById('labor-list').innerHTML=calcLabor.map((row,i)=>`
+    <div class="inline-row" style="grid-template-columns:1fr 70px 80px auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+      <input type="text" value="${row.role}" placeholder="Role" oninput="calcLabor[${i}].role=this.value"/>
+      <input type="number" value="${row.hours}" min="0" placeholder="hrs" oninput="calcLabor[${i}].hours=parseFloat(this.value)||0;recalc()"/>
+      <input type="number" value="${row.rate}" min="0" placeholder="$/hr" oninput="calcLabor[${i}].rate=parseFloat(this.value)||0;recalc()"/>
       <button class="btn btn-danger btn-sm" onclick="removeLaborRow(${i})">✕</button>
     </div>`).join('');
 }
 
-function recalc() {
-  const adults = parseFloat(document.getElementById('calc-adults').value)||0;
-  const kids = parseFloat(document.getElementById('calc-kids').value)||0;
-  const hours = parseFloat(document.getElementById('calc-hours').value)||0;
-  const priceAdult = parseFloat(document.getElementById('calc-price-adult').value)||0;
-  const priceKid = parseFloat(document.getElementById('calc-price-kid').value)||0;
-  const otherCosts = parseFloat(document.getElementById('calc-other-costs').value)||0;
-
-  const totalGuests = adults + kids;
-  const revTarget = (adults * priceAdult) + (kids * priceKid);
-  const totalDrinks = Math.ceil((adults * (DB.settings.drinksPerAdultHour||1.5) + kids * (DB.settings.drinksPerKidHour||0.5)) * hours);
-
-  // Update drink quantities
-  let totalDrinkCost = 0;
-  let totalBottles = 0;
-  calcMenu.forEach((row, i) => {
-    const qty = Math.ceil(totalDrinks * (row.pct/100));
-    const qEl = document.getElementById('menu-qty-'+i);
-    if (qEl) qEl.textContent = qty + ' drinks';
-    // find oz from defaults
-    const def = DB.settings.drinkDefaults.find(d => d.name === row.drink);
-    const oz = def ? def.oz : 4;
-    const mlTotal = qty * oz * 29.5735;
-    const bottles = Math.ceil(mlTotal / 750);
-    totalBottles += bottles;
-    // rough cost estimate: find spirit in inventory
-  });
-
-  const laborCost = calcLabor.reduce((s,l) => s + l.hours*l.rate, 0);
-  const totalCost = laborCost + otherCosts;
-  const profit = revTarget - totalCost;
-  const margin = revTarget > 0 ? ((profit/revTarget)*100).toFixed(1) : 0;
-
-  const row = (label, value, highlight='') => `
-    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
-      <span style="color:var(--text-muted);font-size:13px;">${label}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:13px;color:${highlight||'var(--text)'};">${value}</span>
-    </div>`;
-
-  document.getElementById('calc-summary').innerHTML = `
-    <div style="margin-bottom:16px;">
-      ${row('Total Guests', totalGuests + ' (' + adults + ' adults / ' + kids + ' kids)')}
-      ${row('Total Drinks Est.', totalDrinks + ' drinks')}
-      ${row('Revenue Target', fmtCurrency(revTarget), 'var(--accent)')}
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Cost Breakdown</div>
-      ${row('Labor Cost', fmtCurrency(laborCost))}
-      ${row('Other Event Costs', fmtCurrency(otherCosts))}
-      ${row('TOTAL COST', fmtCurrency(totalCost))}
-    </div>
-    <div style="background:rgba(92,187,140,.08);border:1px solid rgba(92,187,140,.2);border-radius:10px;padding:16px;margin-top:8px;">
-      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Event Profit</div>
-      <div style="font-size:32px;font-weight:700;font-family:'DM Mono',monospace;color:${profit>=0?'var(--success)':'var(--danger)'};">${fmtCurrency(profit)}</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">Margin: ${margin}%</div>
-    </div>
-    <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div class="stat-card card-sm"><div class="stat-label">Est. Bottles</div><div class="stat-value" style="font-size:18px;">${totalBottles}</div></div>
-      <div class="stat-card card-sm"><div class="stat-label">Service Hours</div><div class="stat-value" style="font-size:18px;">${hours}h</div></div>
-    </div>
-  `;
-}
-
-function clearCalc() {
+function clearCalc(){
   document.getElementById('calc-order-select').value='';
   document.getElementById('calc-client').value='';
   document.getElementById('calc-date').value='';
-  document.getElementById('calc-adults').value=50;
+  document.getElementById('calc-adults').value=40;
   document.getElementById('calc-kids').value=0;
   document.getElementById('calc-hours').value=4;
-  document.getElementById('calc-other-costs').value=0;
   document.getElementById('calc-price-adult').value=DB.settings.priceAdult;
   document.getElementById('calc-price-kid').value=DB.settings.priceKid;
-  calcMenu=[{drink:DB.settings.drinkDefaults[0]?.name||'Margarita',pct:100}];
-  calcLabor=[];
-  renderMenuList(); renderLaborList(); recalc();
+  calcMenu=[];calcLabor=[];
+  initCalc();
 }
 
 // ================================================================
-//  PDF GENERATOR
+// PDF
 // ================================================================
-function generatePDF() {
-  const client = document.getElementById('calc-client').value || 'Client';
-  const date = document.getElementById('calc-date').value;
-  const type = document.getElementById('calc-type').value;
-  const adults = parseFloat(document.getElementById('calc-adults').value)||0;
-  const kids = parseFloat(document.getElementById('calc-kids').value)||0;
-  const hours = parseFloat(document.getElementById('calc-hours').value)||0;
-  const priceAdult = parseFloat(document.getElementById('calc-price-adult').value)||0;
-  const priceKid = parseFloat(document.getElementById('calc-price-kid').value)||0;
-  const otherCosts = parseFloat(document.getElementById('calc-other-costs').value)||0;
-  const totalDrinks = Math.ceil((adults*(DB.settings.drinksPerAdultHour||1.5)+kids*(DB.settings.drinksPerKidHour||0.5))*hours);
-  const revTarget = adults*priceAdult + kids*priceKid;
-  const laborCost = calcLabor.reduce((s,l) => s+l.hours*l.rate, 0);
-  const totalCost = laborCost + otherCosts;
-  const profit = revTarget - totalCost;
-  const margin = revTarget>0?((profit/revTarget)*100).toFixed(1):0;
-  const biz = DB.settings.bizName || 'BarOps';
-  const owner = DB.settings.ownerName || '';
-  const phone = DB.settings.phone || '';
-  const email = DB.settings.email || '';
+function generatePDF(){
+  const st=window._calcState||{};
+  const client=document.getElementById('calc-client').value||'Client';
+  const date=document.getElementById('calc-date').value;
+  const type=document.getElementById('calc-type').value;
+  const biz=DB.settings.bizName||'BarOps';
+  const owner=DB.settings.ownerName||'';
 
-  const menuRows = calcMenu.map(row => {
-    const qty = Math.ceil(totalDrinks*(row.pct/100));
-    const def = DB.settings.drinkDefaults.find(d=>d.name===row.drink);
-    const oz = def?def.oz:4;
-    const ml = qty*oz*29.5735;
-    const bottles = Math.ceil(ml/750);
-    return `<tr><td>${row.drink}</td><td>${row.pct}%</td><td>${qty}</td><td>${oz} oz</td><td>${bottles} btl</td></tr>`;
-  }).join('');
+  const spiritRows=(st.drinkRows||[]).map(r=>`<tr>
+    <td>${r.spirit.name}</td><td>${r.row.pct}%</td>
+    <td>${r.drinksForSpirit}</td><td>${r.spirit.oz} oz</td>
+    <td>${r.row.bottleSize}ml</td><td><strong>${r.bottlesNeeded}</strong></td>
+    ${r.costPerBottle>0?`<td>${fc(r.spiritCost)}</td>`:'<td>—</td>'}
+  </tr>`).join('');
 
-  const laborRows = calcLabor.length ? calcLabor.map(l =>
-    `<tr><td>${l.role}</td><td>${l.hours}h @ $${l.rate}/hr</td><td>$${(l.hours*l.rate).toFixed(2)}</td></tr>`
-  ).join('') : '<tr><td colspan="3" style="color:#999">No labor added</td></tr>';
+  // Shopping list from current render
+  const recipes=DB.settings.recipes||[];
+  const aggregate={};
+  (st.drinkRows||[]).forEach(dr=>{
+    const recipe=recipes.find(r=>r.spiritId===dr.row.spiritId);
+    if(!recipe)return;
+    recipe.ingredients.forEach(ing=>{
+      const key=ing.name+'__'+ing.unit;
+      if(!aggregate[key])aggregate[key]={name:ing.name,unit:ing.unit,qty:0};
+      aggregate[key].qty+=ing.qty*dr.drinksForSpirit;
+    });
+  });
+  const shopItems=Object.values(aggregate);
+  const shopRows=shopItems.map(it=>`<tr><td>${it.name}</td><td><strong>${it.qty%1===0?it.qty:it.qty.toFixed(1)} ${it.unit}</strong></td></tr>`).join('');
+  const staticRows=(st.staticRows||[]).map(r=>`<tr><td>${r.name}</td><td>${fc(r.costPerGuest)}/guest</td><td>${fc(r.cost)}</td></tr>`).join('');
+  const laborRows=(calcLabor.length?calcLabor:[ ]).map(l=>`<tr><td>${l.role}</td><td>${l.hours}h @ $${l.rate}/hr</td><td>${fc(l.hours*l.rate)}</td></tr>`).join('');
 
-  document.getElementById('pdf-content').innerHTML = `
+  document.getElementById('pdf-content').innerHTML=`
     <h1>${biz}</h1>
-    <div class="pdf-sub">
-      Event Summary &amp; Quote &nbsp;|&nbsp; Generated ${new Date().toLocaleDateString()}
-      ${owner?`&nbsp;|&nbsp; ${owner}`:''}
-      ${phone?`&nbsp;|&nbsp; ${phone}`:''}
-      ${email?`&nbsp;|&nbsp; ${email}`:''}
-    </div>
-
-    <div class="pdf-section">
-      <h2>Event Overview</h2>
+    <div class="pdf-sub">Event Summary &amp; Quote &nbsp;|&nbsp; ${new Date().toLocaleDateString()}${owner?' | '+owner:''}${DB.settings.phone?' | '+DB.settings.phone:''}${DB.settings.email?' | '+DB.settings.email:''}</div>
+    <div class="pdf-section"><h2>Event Overview</h2>
       <table><tbody>
-        <tr><td><strong>Client</strong></td><td>${client}</td><td><strong>Event Date</strong></td><td>${fmtDate(date)}</td></tr>
-        <tr><td><strong>Event Type</strong></td><td>${type}</td><td><strong>Service Hours</strong></td><td>${hours} hrs</td></tr>
-        <tr><td><strong>Adults</strong></td><td>${adults}</td><td><strong>Kids</strong></td><td>${kids}</td></tr>
-        <tr><td><strong>Total Guests</strong></td><td>${adults+kids}</td><td><strong>Total Drinks Est.</strong></td><td>${totalDrinks}</td></tr>
+        <tr><td><strong>Client</strong></td><td>${client}</td><td><strong>Event Date</strong></td><td>${fd(date)}</td></tr>
+        <tr><td><strong>Type</strong></td><td>${type}</td><td><strong>Service Hours</strong></td><td>${st.hours||0}h</td></tr>
+        <tr><td><strong>Adults</strong></td><td>${st.adults||0}</td><td><strong>Kids</strong></td><td>${st.kids||0}</td></tr>
+        <tr><td><strong>Drinking Pace</strong></td><td>${PACE_MAP[calcPace]} drinks/hr</td><td><strong>Total Adult Drinks</strong></td><td>${Math.ceil(st.totalAdultDrinks||0)}</td></tr>
       </tbody></table>
     </div>
-
-    <div class="pdf-section">
-      <h2>Drink Menu &amp; Requirements</h2>
-      <table>
-        <thead><tr><th>Drink</th><th>Distribution</th><th>Qty</th><th>Serving Size</th><th>Bottles Needed</th></tr></thead>
-        <tbody>${menuRows}</tbody>
-      </table>
+    <div class="pdf-section"><h2>Bottle Requirements</h2>
+      <table><thead><tr><th>Spirit</th><th>Popularity</th><th>Drinks</th><th>Oz/Serving</th><th>Bottle Size</th><th>Bottles Needed</th><th>Est. Cost</th></tr></thead>
+      <tbody>${spiritRows}</tbody></table>
     </div>
-
-    ${calcLabor.length ? `<div class="pdf-section">
-      <h2>Labor</h2>
-      <table>
-        <thead><tr><th>Role</th><th>Hours &amp; Rate</th><th>Cost</th></tr></thead>
-        <tbody>${laborRows}</tbody>
-      </table>
-    </div>` : ''}
-
-    <div class="pdf-section">
-      <h2>Financial Summary</h2>
+    ${shopItems.length?`<div class="pdf-section"><h2>Shopping List — Mixers &amp; Ingredients</h2>
+      <table><thead><tr><th>Ingredient</th><th>Total Needed</th></tr></thead><tbody>${shopRows}</tbody></table>
+    </div>`:''}
+    ${(st.staticRows||[]).length?`<div class="pdf-section"><h2>Static Per-Guest Costs</h2>
+      <table><thead><tr><th>Item</th><th>Per Guest</th><th>Total (${st.totalGuests||0} guests)</th></tr></thead><tbody>${staticRows}</tbody></table>
+    </div>`:''}
+    ${calcLabor.length?`<div class="pdf-section"><h2>Labor</h2>
+      <table><thead><tr><th>Role</th><th>Hours &amp; Rate</th><th>Cost</th></tr></thead><tbody>${laborRows}</tbody></table>
+    </div>`:''}
+    <div class="pdf-section"><h2>Financial Summary</h2>
       <div class="pdf-totals">
         <div>
-          <div class="pdf-total-row"><span>Price per Adult</span><span>$${priceAdult.toFixed(2)}</span></div>
-          <div class="pdf-total-row"><span>Price per Kid</span><span>$${priceKid.toFixed(2)}</span></div>
-          <div class="pdf-total-row total"><span>Revenue Target</span><span>$${revTarget.toFixed(2)}</span></div>
+          <div class="pdf-row"><span>Price per Adult</span><span>${fc(st.priceAdult||0)}</span></div>
+          <div class="pdf-row"><span>Price per Kid</span><span>${fc(st.priceKid||0)}</span></div>
+          <div class="pdf-row total"><span>Revenue Target</span><span>${fc(st.revTarget||0)}</span></div>
         </div>
         <div>
-          <div class="pdf-total-row"><span>Labor Cost</span><span>$${laborCost.toFixed(2)}</span></div>
-          <div class="pdf-total-row"><span>Other Costs</span><span>$${otherCosts.toFixed(2)}</span></div>
-          <div class="pdf-total-row total"><span>Total Costs</span><span>$${totalCost.toFixed(2)}</span></div>
+          <div class="pdf-row"><span>Spirits Cost</span><span>${fc(st.totalBottleCost||0)}</span></div>
+          <div class="pdf-row"><span>Static Costs</span><span>${fc(st.staticTotal||0)}</span></div>
+          <div class="pdf-row"><span>Labor Cost</span><span>${fc(st.laborCost||0)}</span></div>
+          <div class="pdf-row total"><span>Total Costs</span><span>${fc(st.totalCost||0)}</span></div>
         </div>
       </div>
-      <div class="pdf-profit">
-        <div style="font-size:12px;color:#555;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Event Profit</div>
-        <div class="profit-num">$${profit.toFixed(2)}</div>
-        <div style="color:#555;font-size:13px;margin-top:4px;">Profit Margin: ${margin}%</div>
+      <div class="profit-box">
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Event Profit</div>
+        <div class="profit-num">${fc(st.profit||0)}</div>
+        <div style="color:#555;font-size:12px;margin-top:4px;">Profit Margin: ${st.margin||0}%</div>
       </div>
     </div>
-    <div style="margin-top:32px;font-size:11px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:12px;">
-      Generated by BarOps &bull; ${new Date().toLocaleString()}
-    </div>
-  `;
+    <div style="margin-top:28px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px;">Generated by BarOps v2 &bull; ${new Date().toLocaleString()}</div>`;
   document.getElementById('pdf-preview').classList.add('open');
 }
-
-function closePDF() {
-  document.getElementById('pdf-preview').classList.remove('open');
-}
+function closePDF(){document.getElementById('pdf-preview').classList.remove('open');}
 
 // ================================================================
-//  INVENTORY
+// INVENTORY
 // ================================================================
-function saveSpirit() {
-  const name = document.getElementById('sp-name').value.trim(); if (!name) { toast('Name required'); return; }
-  const pkgPrice = parseFloat(document.getElementById('sp-pkg-price').value)||0;
-  const units = parseFloat(document.getElementById('sp-units').value)||1;
-  const spirit = {
-    id: editingId.spirit || Date.now().toString(),
-    name, pkgPrice, units,
-    unitType: document.getElementById('sp-unit-type').value,
-    stock: parseFloat(document.getElementById('sp-stock').value)||0,
-    minStock: parseFloat(document.getElementById('sp-min-stock').value)||1,
-    supplier: document.getElementById('sp-supplier').value,
-    expiry: document.getElementById('sp-expiry').value,
-    costPerUnit: units > 0 ? pkgPrice/units : 0
+function saveSpirit(){
+  const name=document.getElementById('sp-name').value.trim();if(!name){toast('Name required');return;}
+  const pkgPrice=parseFloat(document.getElementById('sp-pkg-price').value)||0;
+  const units=parseFloat(document.getElementById('sp-units').value)||1;
+  const bottleSize=parseInt(document.getElementById('sp-bottle-size').value)||750;
+  const sp={
+    id:editingId.spirit||uid(),name,bottleSize,pkgPrice,units,
+    unitType:bottleSize===750?'750ml bottle':bottleSize===1750?'1.75L handle':'bottle',
+    stock:parseFloat(document.getElementById('sp-stock').value)||0,
+    minStock:parseFloat(document.getElementById('sp-min-stock').value)||1,
+    supplier:document.getElementById('sp-supplier').value,
+    expiry:document.getElementById('sp-expiry').value,
+    costPerUnit:units>0?pkgPrice/units:0
   };
-  if (editingId.spirit) { const i=DB.spirits.findIndex(x=>x.id===spirit.id); if(i>=0) DB.spirits[i]=spirit; }
-  else DB.spirits.push(spirit);
-  saveDB(); renderInventory(); closeModal('inv-spirit-modal');
-  toast('Spirit saved!');
-  ['sp-name','sp-supplier','sp-expiry'].forEach(id=>document.getElementById(id).value='');
-  ['sp-pkg-price','sp-stock'].forEach(id=>document.getElementById(id).value='0');
-  document.getElementById('sp-units').value='1'; document.getElementById('sp-min-stock').value='1';
+  if(editingId.spirit){const i=DB.spirits.findIndex(x=>x.id===sp.id);if(i>=0)DB.spirits[i]=sp;}
+  else DB.spirits.push(sp);
+  saveDB();renderInventory();closeModal('inv-spirit-modal');toast('Saved!');
 }
-
-function saveConsumable() {
-  const name = document.getElementById('con-name').value.trim(); if (!name) { toast('Name required'); return; }
-  const pkgPrice = parseFloat(document.getElementById('con-pkg-price').value)||0;
-  const units = parseFloat(document.getElementById('con-units').value)||1;
-  const item = {
-    id: editingId.consumable || Date.now().toString(),
-    name, pkgPrice, units,
-    unitType: document.getElementById('con-unit-type').value,
-    stock: parseFloat(document.getElementById('con-stock').value)||0,
-    minStock: parseFloat(document.getElementById('con-min-stock').value)||1,
-    supplier: document.getElementById('con-supplier').value,
-    costPerUnit: units > 0 ? pkgPrice/units : 0
+function saveConsumable(){
+  const name=document.getElementById('con-name').value.trim();if(!name){toast('Name required');return;}
+  const pkgPrice=parseFloat(document.getElementById('con-pkg-price').value)||0;
+  const units=parseFloat(document.getElementById('con-units').value)||1;
+  const c={
+    id:editingId.consumable||uid(),name,pkgPrice,units,
+    unitType:document.getElementById('con-unit-type').value,
+    stock:parseFloat(document.getElementById('con-stock').value)||0,
+    minStock:parseFloat(document.getElementById('con-min-stock').value)||1,
+    supplier:document.getElementById('con-supplier').value,
+    costPerUnit:units>0?pkgPrice/units:0
   };
-  if (editingId.consumable) { const i=DB.consumables.findIndex(x=>x.id===item.id); if(i>=0) DB.consumables[i]=item; }
-  else DB.consumables.push(item);
-  saveDB(); renderInventory(); closeModal('inv-consumable-modal');
-  toast('Consumable saved!');
+  if(editingId.consumable){const i=DB.consumables.findIndex(x=>x.id===c.id);if(i>=0)DB.consumables[i]=c;}
+  else DB.consumables.push(c);
+  saveDB();renderInventory();closeModal('inv-consumable-modal');toast('Saved!');
 }
-
-function deleteSpirit(id) {
-  if (!confirm('Delete this item?')) return;
-  DB.spirits = DB.spirits.filter(x=>x.id!==id); saveDB(); renderInventory();
-}
-function deleteConsumable(id) {
-  if (!confirm('Delete this item?')) return;
-  DB.consumables = DB.consumables.filter(x=>x.id!==id); saveDB(); renderInventory();
-}
-
-function renderInventory() {
-  const tbody = document.getElementById('spirits-tbody');
-  if (!DB.spirits.length) { tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">🍾</div><p>No spirits added yet.</p></div></td></tr>`; }
-  else tbody.innerHTML = DB.spirits.map(s => {
-    const reorder = s.stock <= s.minStock;
-    const val = (s.stock * s.costPerUnit).toFixed(2);
-    return `<tr>
-      <td><strong>${s.name}</strong></td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(s.pkgPrice)}</td>
-      <td>${s.units} ${s.unitType}</td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(s.costPerUnit)}</td>
-      <td>${s.stock} ${s.unitType}</td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(val)}</td>
-      <td>${s.minStock}</td>
-      <td><span class="badge badge-${reorder?'yes':'no'}">${reorder?'YES':'NO'}</span></td>
-      <td>${s.supplier||'—'}</td>
-      <td style="font-size:12px;">${fmtDate(s.expiry)}</td>
-      <td><div class="actions">
-        <button class="btn btn-secondary btn-sm" onclick="editSpirit('${s.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSpirit('${s.id}')">Del</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-
-  const ctbody = document.getElementById('consumables-tbody');
-  if (!DB.consumables.length) { ctbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">📦</div><p>No consumables added yet.</p></div></td></tr>`; }
-  else ctbody.innerHTML = DB.consumables.map(c => {
-    const reorder = c.stock <= c.minStock;
-    const val = (c.stock * c.costPerUnit).toFixed(2);
-    return `<tr>
-      <td><strong>${c.name}</strong></td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(c.pkgPrice)}</td>
-      <td>${c.units}</td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(c.costPerUnit)}</td>
-      <td>${c.stock}</td>
-      <td>${c.unitType}</td>
-      <td style="font-family:'DM Mono',monospace;">${fmtCurrency(val)}</td>
-      <td>${c.minStock}</td>
-      <td><span class="badge badge-${reorder?'yes':'no'}">${reorder?'YES':'NO'}</span></td>
-      <td>${c.supplier||'—'}</td>
-      <td><div class="actions">
-        <button class="btn btn-secondary btn-sm" onclick="editConsumable('${c.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteConsumable('${c.id}')">Del</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-}
-
-function editSpirit(id) {
-  const s = DB.spirits.find(x=>x.id===id); if(!s) return;
-  editingId.spirit = id;
-  openModal('inv-spirit-modal');
-  setTimeout(() => {
+function deleteSpirit(id){if(!confirm('Delete?'))return;DB.spirits=DB.spirits.filter(x=>x.id!==id);saveDB();renderInventory();}
+function deleteConsumable(id){if(!confirm('Delete?'))return;DB.consumables=DB.consumables.filter(x=>x.id!==id);saveDB();renderInventory();}
+function editSpirit(id){
+  const s=DB.spirits.find(x=>x.id===id);if(!s)return;
+  editingId.spirit=id;openModal('inv-spirit-modal');
+  setTimeout(()=>{
     document.getElementById('sp-name').value=s.name;
+    document.getElementById('sp-bottle-size').value=s.bottleSize||750;
     document.getElementById('sp-pkg-price').value=s.pkgPrice;
     document.getElementById('sp-units').value=s.units;
-    document.getElementById('sp-unit-type').value=s.unitType;
     document.getElementById('sp-stock').value=s.stock;
     document.getElementById('sp-min-stock').value=s.minStock;
     document.getElementById('sp-supplier').value=s.supplier||'';
     document.getElementById('sp-expiry').value=s.expiry||'';
   },50);
 }
-
-function editConsumable(id) {
-  const c = DB.consumables.find(x=>x.id===id); if(!c) return;
-  editingId.consumable = id;
-  openModal('inv-consumable-modal');
-  setTimeout(() => {
+function editConsumable(id){
+  const c=DB.consumables.find(x=>x.id===id);if(!c)return;
+  editingId.consumable=id;openModal('inv-consumable-modal');
+  setTimeout(()=>{
     document.getElementById('con-name').value=c.name;
     document.getElementById('con-pkg-price').value=c.pkgPrice;
     document.getElementById('con-units').value=c.units;
@@ -1334,43 +1208,73 @@ function editConsumable(id) {
     document.getElementById('con-supplier').value=c.supplier||'';
   },50);
 }
+function renderInventory(){
+  const sb=document.getElementById('spirits-tbody');
+  if(!DB.spirits.length)sb.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">🍾</div><p>No spirits yet.</p></div></td></tr>`;
+  else sb.innerHTML=DB.spirits.map(s=>{
+    const r=s.stock<=s.minStock;
+    return`<tr>
+      <td><strong>${s.name}</strong></td>
+      <td style="font-size:12px;">${s.bottleSize||750}ml</td>
+      <td style="font-family:'DM Mono',monospace;">${fc(s.pkgPrice)}</td>
+      <td style="font-family:'DM Mono',monospace;">${fc(s.costPerUnit)}</td>
+      <td>${s.stock} btl</td>
+      <td style="font-family:'DM Mono',monospace;">${fc(s.stock*s.costPerUnit)}</td>
+      <td>${s.minStock}</td>
+      <td><span class="badge badge-${r?'yes':'no'}">${r?'YES':'NO'}</span></td>
+      <td>${s.supplier||'—'}</td>
+      <td style="font-size:12px;">${fd(s.expiry)}</td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="editSpirit('${s.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSpirit('${s.id}')">Del</button>
+      </div></td>
+    </tr>`;}).join('');
+
+  const cb=document.getElementById('consumables-tbody');
+  if(!DB.consumables.length)cb.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">📦</div><p>No consumables yet.</p></div></td></tr>`;
+  else cb.innerHTML=DB.consumables.map(c=>{
+    const r=c.stock<=c.minStock;
+    return`<tr>
+      <td><strong>${c.name}</strong></td>
+      <td style="font-family:'DM Mono',monospace;">${fc(c.pkgPrice)}</td>
+      <td>${c.units}</td>
+      <td style="font-family:'DM Mono',monospace;">${fc(c.costPerUnit)}</td>
+      <td>${c.stock}</td><td>${c.unitType}</td>
+      <td style="font-family:'DM Mono',monospace;">${fc(c.stock*c.costPerUnit)}</td>
+      <td>${c.minStock}</td>
+      <td><span class="badge badge-${r?'yes':'no'}">${r?'YES':'NO'}</span></td>
+      <td>${c.supplier||'—'}</td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="editConsumable('${c.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteConsumable('${c.id}')">Del</button>
+      </div></td>
+    </tr>`;}).join('');
+}
 
 // ================================================================
-//  EXPENSES
+// EXPENSES
 // ================================================================
-function saveExpense() {
-  const amount = parseFloat(document.getElementById('ex-amount').value);
-  if (!amount || amount <= 0) { toast('Amount required'); return; }
-  const expense = {
-    id: editingId.expense || Date.now().toString(),
-    date: document.getElementById('ex-date').value,
-    amount,
-    category: document.getElementById('ex-category').value,
-    subcategory: document.getElementById('ex-subcategory').value,
-    description: document.getElementById('ex-description').value,
-    supplier: document.getElementById('ex-supplier').value,
-    payment: document.getElementById('ex-payment').value,
-    notes: document.getElementById('ex-notes').value
+function saveExpense(){
+  const amount=parseFloat(document.getElementById('ex-amount').value);
+  if(!amount||amount<=0){toast('Amount required');return;}
+  const ex={
+    id:editingId.expense||uid(),date:document.getElementById('ex-date').value,amount,
+    category:document.getElementById('ex-category').value,subcategory:document.getElementById('ex-subcategory').value,
+    description:document.getElementById('ex-description').value,supplier:document.getElementById('ex-supplier').value,
+    payment:document.getElementById('ex-payment').value,notes:document.getElementById('ex-notes').value
   };
-  if (editingId.expense) { const i=DB.expenses.findIndex(x=>x.id===expense.id); if(i>=0) DB.expenses[i]=expense; }
-  else DB.expenses.unshift(expense);
-  saveDB(); renderExpenses(); closeModal('expense-modal');
-  toast('Expense saved!');
+  if(editingId.expense){const i=DB.expenses.findIndex(x=>x.id===ex.id);if(i>=0)DB.expenses[i]=ex;}
+  else DB.expenses.unshift(ex);
+  saveDB();renderExpenses();closeModal('expense-modal');toast('Expense saved!');
 }
-
-function deleteExpense(id) {
-  if (!confirm('Delete?')) return;
-  DB.expenses = DB.expenses.filter(x=>x.id!==id); saveDB(); renderExpenses();
-}
-
-function editExpense(id) {
-  const e = DB.expenses.find(x=>x.id===id); if(!e) return;
-  editingId.expense = id;
-  openModal('expense-modal');
-  setTimeout(() => {
+function deleteExpense(id){if(!confirm('Delete?'))return;DB.expenses=DB.expenses.filter(x=>x.id!==id);saveDB();renderExpenses();}
+function editExpense(id){
+  const e=DB.expenses.find(x=>x.id===id);if(!e)return;
+  editingId.expense=id;openModal('expense-modal');
+  setTimeout(()=>{
     document.getElementById('ex-date').value=e.date||'';
     document.getElementById('ex-amount').value=e.amount||'';
-    populateSelect('ex-category', DB.settings.expenseCategories);
+    populateSelect('ex-category',DB.settings.expenseCategories);
     document.getElementById('ex-category').value=e.category||'';
     document.getElementById('ex-subcategory').value=e.subcategory||'';
     document.getElementById('ex-description').value=e.description||'';
@@ -1379,18 +1283,17 @@ function editExpense(id) {
     document.getElementById('ex-notes').value=e.notes||'';
   },50);
 }
-
-function renderExpenses() {
-  const tbody = document.getElementById('expenses-tbody');
-  if (!DB.expenses.length) { tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">💸</div><p>No expenses logged yet.</p></div></td></tr>`; renderExpenseStats(); return; }
-  tbody.innerHTML = DB.expenses.map(e => `<tr>
-    <td style="font-size:12px;">${fmtDate(e.date)}</td>
-    <td style="font-family:'DM Mono',monospace;color:var(--danger);">${fmtCurrency(e.amount)}</td>
+function renderExpenses(){
+  const tbody=document.getElementById('expenses-tbody');
+  if(!DB.expenses.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">💸</div><p>No expenses yet.</p></div></td></tr>`;renderExpenseStats();return;}
+  tbody.innerHTML=DB.expenses.map(e=>`<tr>
+    <td style="font-size:12px;">${fd(e.date)}</td>
+    <td style="font-family:'DM Mono',monospace;color:var(--danger);">${fc(e.amount)}</td>
     <td>${e.category||'—'}</td>
     <td style="font-size:12px;color:var(--text-muted);">${e.subcategory||'—'}</td>
     <td>${e.description||'—'}</td>
     <td style="font-size:12px;">${e.supplier||'—'}</td>
-    <td><span style="font-size:11px;color:var(--text-muted);">${e.payment||'—'}</span></td>
+    <td style="font-size:11px;color:var(--text-muted);">${e.payment||'—'}</td>
     <td style="font-size:12px;color:var(--text-muted);">${e.notes||'—'}</td>
     <td><div class="actions">
       <button class="btn btn-secondary btn-sm" onclick="editExpense('${e.id}')">Edit</button>
@@ -1399,81 +1302,53 @@ function renderExpenses() {
   </tr>`).join('');
   renderExpenseStats();
 }
-
-function renderExpenseStats() {
-  const total = DB.expenses.reduce((s,e)=>s+e.amount,0);
-  const now = new Date();
-  const thisMonth = DB.expenses.filter(e=>{ const d=new Date(e.date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).reduce((s,e)=>s+e.amount,0);
-  const cats = {};
-  DB.expenses.forEach(e=>{ cats[e.category]=(cats[e.category]||0)+e.amount; });
-  const topCat = Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('expense-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total Spent</div><div class="stat-value danger">${fmtCurrency(total)}</div></div>
-    <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value">${fmtCurrency(thisMonth)}</div></div>
-    <div class="stat-card"><div class="stat-label">Top Category</div><div class="stat-value" style="font-size:14px;">${topCat?topCat[0]:'—'}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Entries</div><div class="stat-value">${DB.expenses.length}</div></div>
-  `;
+function renderExpenseStats(){
+  const total=DB.expenses.reduce((s,e)=>s+e.amount,0);
+  const now=new Date();
+  const thisMonth=DB.expenses.filter(e=>{const d=new Date(e.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,e)=>s+e.amount,0);
+  const cats={};DB.expenses.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const top=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('expense-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Spent</div><div class="stat-value danger">${fc(total)}</div></div>
+    <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value">${fc(thisMonth)}</div></div>
+    <div class="stat-card"><div class="stat-label">Top Category</div><div class="stat-value" style="font-size:13px;">${top?top[0]:'—'}</div></div>
+    <div class="stat-card"><div class="stat-label">Entries</div><div class="stat-value">${DB.expenses.length}</div></div>`;
 }
 
 // ================================================================
-//  SUPPLIERS
+// SUPPLIERS
 // ================================================================
-function saveSupplier() {
-  const name = document.getElementById('sup-name').value.trim(); if (!name) { toast('Name required'); return; }
-  const sup = {
-    id: editingId.supplier || Date.now().toString(),
-    name, product: document.getElementById('sup-product').value,
-    availability: document.getElementById('sup-availability').value,
-    cost: parseFloat(document.getElementById('sup-cost').value)||0,
-    deposit: document.getElementById('sup-deposit').value,
-    contact: document.getElementById('sup-contact').value,
-    phone: document.getElementById('sup-phone').value,
-    email: document.getElementById('sup-email').value,
-    address: document.getElementById('sup-address').value,
-    rating: parseInt(document.getElementById('sup-rating').value)||3,
-    notes: document.getElementById('sup-notes').value
-  };
-  if (editingId.supplier) { const i=DB.suppliers.findIndex(x=>x.id===sup.id); if(i>=0) DB.suppliers[i]=sup; }
-  else DB.suppliers.push(sup);
-  saveDB(); renderSuppliers(); closeModal('supplier-modal');
-  toast('Supplier saved!');
+function saveSupplier(){
+  const name=document.getElementById('sup-name').value.trim();if(!name){toast('Name required');return;}
+  const s={id:editingId.supplier||uid(),name,product:document.getElementById('sup-product').value,
+    availability:document.getElementById('sup-availability').value,cost:parseFloat(document.getElementById('sup-cost').value)||0,
+    deposit:document.getElementById('sup-deposit').value,contact:document.getElementById('sup-contact').value,
+    phone:document.getElementById('sup-phone').value,email:document.getElementById('sup-email').value,
+    rating:parseInt(document.getElementById('sup-rating').value)||3,notes:document.getElementById('sup-notes').value};
+  if(editingId.supplier){const i=DB.suppliers.findIndex(x=>x.id===s.id);if(i>=0)DB.suppliers[i]=s;}
+  else DB.suppliers.push(s);
+  saveDB();renderSuppliers();closeModal('supplier-modal');toast('Supplier saved!');
 }
-
-function deleteSupplier(id) {
-  if (!confirm('Delete?')) return;
-  DB.suppliers = DB.suppliers.filter(x=>x.id!==id); saveDB(); renderSuppliers();
-}
-
-function editSupplier(id) {
-  const s = DB.suppliers.find(x=>x.id===id); if(!s) return;
-  editingId.supplier = id;
-  openModal('supplier-modal');
-  setTimeout(() => {
-    document.getElementById('sup-name').value=s.name;
-    document.getElementById('sup-product').value=s.product||'';
-    document.getElementById('sup-availability').value=s.availability||'';
+function deleteSupplier(id){if(!confirm('Delete?'))return;DB.suppliers=DB.suppliers.filter(x=>x.id!==id);saveDB();renderSuppliers();}
+function editSupplier(id){
+  const s=DB.suppliers.find(x=>x.id===id);if(!s)return;
+  editingId.supplier=id;openModal('supplier-modal');
+  setTimeout(()=>{
+    ['name','product','availability','contact','phone','email','notes'].forEach(f=>document.getElementById('sup-'+f).value=s[f]||'');
     document.getElementById('sup-cost').value=s.cost||0;
     document.getElementById('sup-deposit').value=s.deposit||'No';
-    document.getElementById('sup-contact').value=s.contact||'';
-    document.getElementById('sup-phone').value=s.phone||'';
-    document.getElementById('sup-email').value=s.email||'';
-    document.getElementById('sup-address').value=s.address||'';
     document.getElementById('sup-rating').value=s.rating||3;
-    document.getElementById('sup-notes').value=s.notes||'';
   },50);
 }
-
-function renderSuppliers() {
-  const tbody = document.getElementById('suppliers-tbody');
-  if (!DB.suppliers.length) { tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">🤝</div><p>No suppliers added yet.</p></div></td></tr>`; return; }
-  tbody.innerHTML = DB.suppliers.map(s => `<tr>
-    <td><strong>${s.name}</strong></td>
-    <td>${s.product||'—'}</td>
-    <td><span style="font-size:12px;">${s.availability||'—'}</span></td>
-    <td style="font-family:'DM Mono',monospace;">${fmtCurrency(s.cost)}</td>
+function renderSuppliers(){
+  const tbody=document.getElementById('suppliers-tbody');
+  if(!DB.suppliers.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="icon">🤝</div><p>No suppliers yet.</p></div></td></tr>`;return;}
+  tbody.innerHTML=DB.suppliers.map(s=>`<tr>
+    <td><strong>${s.name}</strong></td><td>${s.product||'—'}</td>
+    <td style="font-size:12px;">${s.availability||'—'}</td>
+    <td style="font-family:'DM Mono',monospace;">${fc(s.cost)}</td>
     <td><span class="badge badge-${s.deposit==='Yes'?'yes':'no'}">${s.deposit||'No'}</span></td>
-    <td>${s.contact||'—'}</td>
-    <td style="font-size:12px;">${s.phone||'—'}</td>
+    <td>${s.contact||'—'}</td><td style="font-size:12px;">${s.phone||'—'}</td>
     <td style="font-size:12px;">${s.email||'—'}</td>
     <td><span class="stars">${stars(s.rating)}</span></td>
     <td style="font-size:12px;color:var(--text-muted);">${s.notes||'—'}</td>
@@ -1485,58 +1360,38 @@ function renderSuppliers() {
 }
 
 // ================================================================
-//  EQUIPMENT
+// EQUIPMENT
 // ================================================================
-function saveEquipment() {
-  const name = document.getElementById('eq-name').value.trim(); if (!name) { toast('Name required'); return; }
-  const eq = {
-    id: editingId.equipment || Date.now().toString(),
-    name, date: document.getElementById('eq-date').value,
-    condition: document.getElementById('eq-condition').value,
-    qty: parseInt(document.getElementById('eq-qty').value)||1,
-    supplier: document.getElementById('eq-supplier').value,
-    cost: parseFloat(document.getElementById('eq-cost').value)||0,
-    location: document.getElementById('eq-location').value,
-    notes: document.getElementById('eq-notes').value
-  };
-  if (editingId.equipment) { const i=DB.equipment.findIndex(x=>x.id===eq.id); if(i>=0) DB.equipment[i]=eq; }
+function saveEquipment(){
+  const name=document.getElementById('eq-name').value.trim();if(!name){toast('Name required');return;}
+  const eq={id:editingId.equipment||uid(),name,date:document.getElementById('eq-date').value,
+    condition:document.getElementById('eq-condition').value,qty:parseInt(document.getElementById('eq-qty').value)||1,
+    supplier:document.getElementById('eq-supplier').value,cost:parseFloat(document.getElementById('eq-cost').value)||0,
+    location:document.getElementById('eq-location').value,notes:document.getElementById('eq-notes').value};
+  if(editingId.equipment){const i=DB.equipment.findIndex(x=>x.id===eq.id);if(i>=0)DB.equipment[i]=eq;}
   else DB.equipment.push(eq);
-  saveDB(); renderEquipment(); closeModal('equipment-modal');
-  toast('Equipment saved!');
+  saveDB();renderEquipment();closeModal('equipment-modal');toast('Saved!');
 }
-
-function deleteEquipment(id) {
-  if (!confirm('Delete?')) return;
-  DB.equipment = DB.equipment.filter(x=>x.id!==id); saveDB(); renderEquipment();
-}
-
-function editEquipment(id) {
-  const e = DB.equipment.find(x=>x.id===id); if(!e) return;
-  editingId.equipment = id;
-  openModal('equipment-modal');
-  setTimeout(() => {
-    document.getElementById('eq-name').value=e.name;
-    document.getElementById('eq-date').value=e.date||'';
-    document.getElementById('eq-condition').value=e.condition||'Good';
-    document.getElementById('eq-qty').value=e.qty||1;
-    document.getElementById('eq-supplier').value=e.supplier||'';
-    document.getElementById('eq-cost').value=e.cost||0;
-    document.getElementById('eq-location').value=e.location||'';
-    document.getElementById('eq-notes').value=e.notes||'';
+function deleteEquipment(id){if(!confirm('Delete?'))return;DB.equipment=DB.equipment.filter(x=>x.id!==id);saveDB();renderEquipment();}
+function editEquipment(id){
+  const e=DB.equipment.find(x=>x.id===id);if(!e)return;
+  editingId.equipment=id;openModal('equipment-modal');
+  setTimeout(()=>{
+    document.getElementById('eq-name').value=e.name;document.getElementById('eq-date').value=e.date||'';
+    document.getElementById('eq-condition').value=e.condition||'Good';document.getElementById('eq-qty').value=e.qty||1;
+    document.getElementById('eq-supplier').value=e.supplier||'';document.getElementById('eq-cost').value=e.cost||0;
+    document.getElementById('eq-location').value=e.location||'';document.getElementById('eq-notes').value=e.notes||'';
   },50);
 }
-
-function renderEquipment() {
-  const tbody = document.getElementById('equipment-tbody');
-  if (!DB.equipment.length) { tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">🔧</div><p>No equipment logged yet.</p></div></td></tr>`; return; }
-  const condColor = {New:'var(--success)',Excellent:'var(--success)',Good:'var(--accent2)',Fair:'var(--warning)',Poor:'var(--danger)'};
-  tbody.innerHTML = DB.equipment.map(e => `<tr>
-    <td><strong>${e.name}</strong></td>
-    <td style="font-size:12px;">${fmtDate(e.date)}</td>
-    <td><span style="color:${condColor[e.condition]||'var(--text)'};">${e.condition}</span></td>
-    <td>${e.qty}</td>
-    <td style="font-size:12px;">${e.supplier||'—'}</td>
-    <td style="font-family:'DM Mono',monospace;">${fmtCurrency(e.cost)}</td>
+function renderEquipment(){
+  const tbody=document.getElementById('equipment-tbody');
+  if(!DB.equipment.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="icon">🔧</div><p>No equipment yet.</p></div></td></tr>`;return;}
+  const cc={New:'var(--success)',Excellent:'var(--success)',Good:'var(--accent2)',Fair:'var(--warning)',Poor:'var(--danger)'};
+  tbody.innerHTML=DB.equipment.map(e=>`<tr>
+    <td><strong>${e.name}</strong></td><td style="font-size:12px;">${fd(e.date)}</td>
+    <td style="color:${cc[e.condition]||'var(--text)'};">${e.condition}</td>
+    <td>${e.qty}</td><td style="font-size:12px;">${e.supplier||'—'}</td>
+    <td style="font-family:'DM Mono',monospace;">${fc(e.cost)}</td>
     <td style="font-size:12px;">${e.location||'—'}</td>
     <td style="font-size:12px;color:var(--text-muted);">${e.notes||'—'}</td>
     <td><div class="actions">
@@ -1547,59 +1402,42 @@ function renderEquipment() {
 }
 
 // ================================================================
-//  TO-DOS
+// TODOS
 // ================================================================
-function saveTodo() {
-  const task = document.getElementById('td-task').value.trim(); if (!task) { toast('Task required'); return; }
-  const todo = {
-    id: editingId.todo || Date.now().toString(),
-    task, assigned: document.getElementById('td-assigned').value,
-    deadline: document.getElementById('td-deadline').value,
-    progress: document.getElementById('td-progress').value,
-    notes: document.getElementById('td-notes').value
-  };
-  if (editingId.todo) { const i=DB.todos.findIndex(x=>x.id===todo.id); if(i>=0) DB.todos[i]=todo; }
-  else DB.todos.push(todo);
-  saveDB(); renderTodos(); closeModal('todo-modal');
-  toast('Task saved!');
+function saveTodo(){
+  const task=document.getElementById('td-task').value.trim();if(!task){toast('Task required');return;}
+  const t={id:editingId.todo||uid(),task,assigned:document.getElementById('td-assigned').value,
+    deadline:document.getElementById('td-deadline').value,progress:document.getElementById('td-progress').value,
+    notes:document.getElementById('td-notes').value};
+  if(editingId.todo){const i=DB.todos.findIndex(x=>x.id===t.id);if(i>=0)DB.todos[i]=t;}
+  else DB.todos.push(t);
+  saveDB();renderTodos();closeModal('todo-modal');toast('Task saved!');
 }
-
-function deleteTodo(id) {
-  if (!confirm('Delete?')) return;
-  DB.todos = DB.todos.filter(x=>x.id!==id); saveDB(); renderTodos();
-}
-
-function editTodo(id) {
-  const t = DB.todos.find(x=>x.id===id); if(!t) return;
-  editingId.todo = id;
-  openModal('todo-modal');
-  setTimeout(() => {
-    document.getElementById('td-task').value=t.task;
-    document.getElementById('td-assigned').value=t.assigned||'';
-    document.getElementById('td-deadline').value=t.deadline||'';
-    document.getElementById('td-progress').value=t.progress||'Not started';
+function deleteTodo(id){if(!confirm('Delete?'))return;DB.todos=DB.todos.filter(x=>x.id!==id);saveDB();renderTodos();}
+function editTodo(id){
+  const t=DB.todos.find(x=>x.id===id);if(!t)return;
+  editingId.todo=id;openModal('todo-modal');
+  setTimeout(()=>{
+    document.getElementById('td-task').value=t.task;document.getElementById('td-assigned').value=t.assigned||'';
+    document.getElementById('td-deadline').value=t.deadline||'';document.getElementById('td-progress').value=t.progress||'Not started';
     document.getElementById('td-notes').value=t.notes||'';
   },50);
 }
-
-function toggleTodoDone(id) {
-  const t = DB.todos.find(x=>x.id===id); if(!t) return;
-  t.progress = t.progress==='Done'?'Not started':'Done';
-  saveDB(); renderTodos();
+function toggleDone(id){
+  const t=DB.todos.find(x=>x.id===id);if(!t)return;
+  t.progress=t.progress==='Done'?'Not started':'Done';saveDB();renderTodos();
 }
-
-function renderTodos() {
-  const tbody = document.getElementById('todos-tbody');
-  if (!DB.todos.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="icon">✅</div><p>No tasks yet. Build your event prep list!</p></div></td></tr>`; return; }
-  const badgeMap = {'Done':'badge-done','In progress':'badge-progress','Not started':'badge-pending'};
-  tbody.innerHTML = DB.todos.map(t => `<tr>
+function renderTodos(){
+  const tbody=document.getElementById('todos-tbody');
+  if(!DB.todos.length){tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="icon">✅</div><p>No tasks yet.</p></div></td></tr>`;return;}
+  const bm={'Done':'badge-done','In progress':'badge-progress','Not started':'badge-pending'};
+  tbody.innerHTML=DB.todos.map(t=>`<tr>
     <td><span style="${t.progress==='Done'?'text-decoration:line-through;color:var(--text-muted)':''}">${t.task}</span></td>
-    <td style="font-size:12px;">${t.assigned||'—'}</td>
-    <td style="font-size:12px;">${fmtDate(t.deadline)}</td>
-    <td><span class="badge ${badgeMap[t.progress]||'badge-pending'}">${t.progress}</span></td>
+    <td style="font-size:12px;">${t.assigned||'—'}</td><td style="font-size:12px;">${fd(t.deadline)}</td>
+    <td><span class="badge ${bm[t.progress]||'badge-pending'}">${t.progress}</span></td>
     <td style="font-size:12px;color:var(--text-muted);">${t.notes||'—'}</td>
     <td><div class="actions">
-      <button class="btn btn-success btn-sm" onclick="toggleTodoDone('${t.id}')" title="Toggle done">✓</button>
+      <button class="btn btn-success btn-sm" onclick="toggleDone('${t.id}')">✓</button>
       <button class="btn btn-secondary btn-sm" onclick="editTodo('${t.id}')">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="deleteTodo('${t.id}')">Del</button>
     </div></td>
@@ -1607,101 +1445,146 @@ function renderTodos() {
 }
 
 // ================================================================
-//  SETTINGS
+// SETTINGS
 // ================================================================
-function renderSettings() {
-  const s = DB.settings;
-  document.getElementById('s-biz-name').value = s.bizName||'';
-  document.getElementById('s-owner-name').value = s.ownerName||'';
-  document.getElementById('s-phone').value = s.phone||'';
-  document.getElementById('s-email').value = s.email||'';
-  document.getElementById('s-website').value = s.website||'';
-  document.getElementById('s-price-adult').value = s.priceAdult||35;
-  document.getElementById('s-price-kid').value = s.priceKid||15;
-  document.getElementById('s-dpa').value = s.drinksPerAdultHour||1.5;
-  document.getElementById('s-dpk').value = s.drinksPerKidHour||0.5;
-  document.getElementById('s-rev-target').value = s.revenueTarget||100000;
+function renderSettings(){
+  const s=DB.settings;
+  document.getElementById('s-biz-name').value=s.bizName||'';
+  document.getElementById('s-owner-name').value=s.ownerName||'';
+  document.getElementById('s-phone').value=s.phone||'';
+  document.getElementById('s-email').value=s.email||'';
+  document.getElementById('s-price-adult').value=s.priceAdult||35;
+  document.getElementById('s-price-kid').value=s.priceKid||15;
+  document.getElementById('s-rev-target').value=s.revenueTarget||100000;
 
-  // Drink defaults
-  const ddList = document.getElementById('drink-defaults-list');
-  ddList.innerHTML = (s.drinkDefaults||[]).map((d,i) => `
-    <div style="display:grid;grid-template-columns:1fr 80px auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${d.name}" placeholder="Drink Name" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;"
-        oninput="DB.settings.drinkDefaults[${i}].name=this.value"/>
-      <input type="number" value="${d.oz}" min="0.5" step="0.5" placeholder="oz" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;text-align:center;"
-        oninput="DB.settings.drinkDefaults[${i}].oz=parseFloat(this.value)||4"/>
-      <button class="btn btn-danger btn-sm" onclick="DB.settings.drinkDefaults.splice(${i},1);renderSettings()">✕</button>
+  // Spirits Library
+  document.getElementById('spirits-library-list').innerHTML=(s.spiritsLibrary||[]).map((sp,i)=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1fr 80px auto auto;gap:8px;align-items:center;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Spirit Name</div>
+        <input type="text" value="${sp.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.spiritsLibrary[${i}].name=this.value"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">oz/serving</div>
+        <input type="number" value="${sp.oz}" min="0.5" step="0.25" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.spiritsLibrary[${i}].oz=parseFloat(this.value)||2"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Bottle Sizes</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${[750,1000,1750,355].map(bs=>`<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px;color:var(--text-muted);">
+            <input type="checkbox" ${(sp.bottleSizes||[750]).includes(bs)?'checked':''} onchange="toggleBottleSize(${i},${bs},this.checked)" style="accent-color:var(--accent);"/> ${bs===750?'750ml':bs===1750?'1.75L':bs===1000?'1L':'355ml'}
+          </label>`).join('')}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="DB.settings.spiritsLibrary.splice(${i},1);renderSettings()">✕</button>
+    </div>`).join('');
+
+  // Recipes
+  document.getElementById('recipes-list').innerHTML=(s.recipes||[]).map((r,ri)=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;margin-right:12px;">
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail Name</div>
+            <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.recipes[${ri}].name=this.value"/>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Base Spirit (for calc linking)</div>
+            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" onchange="DB.settings.recipes[${ri}].spiritId=this.value">
+              ${(s.spiritsLibrary||[]).map(sp=>`<option value="${sp.id}" ${sp.id===r.spiritId?'selected':''}>${sp.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes.splice(${ri},1);renderSettings()">Remove Recipe</button>
+      </div>
+      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Ingredients per drink</div>
+      ${r.ingredients.map((ing,ii)=>`
+        <div style="display:grid;grid-template-columns:1fr 70px 80px auto;gap:6px;margin-bottom:6px;align-items:center;">
+          <input type="text" value="${ing.name}" placeholder="Ingredient name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;" oninput="DB.settings.recipes[${ri}].ingredients[${ii}].name=this.value"/>
+          <input type="number" value="${ing.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;" oninput="DB.settings.recipes[${ri}].ingredients[${ii}].qty=parseFloat(this.value)||0"/>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;" onchange="DB.settings.recipes[${ri}].ingredients[${ii}].unit=this.value">
+            ${['oz','ml','cup','tbsp','tsp','pinch','pc','dash','g'].map(u=>`<option ${u===ing.unit?'selected':''}>${u}</option>`).join('')}
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].ingredients.splice(${ii},1);renderSettings()">✕</button>
+        </div>`).join('')}
+      <button class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="DB.settings.recipes[${ri}].ingredients.push({name:'',qty:1,unit:'oz'});renderSettings()">+ Add Ingredient</button>
+    </div>`).join('');
+
+  // Static costs
+  document.getElementById('static-costs-list').innerHTML=(s.staticCosts||[]).map((sc,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Item Name</div>
+        <input type="text" value="${sc.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.staticCosts[${i}].name=this.value"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">$ per guest</div>
+        <input type="number" value="${sc.costPerGuest}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.staticCosts[${i}].costPerGuest=parseFloat(this.value)||0"/>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="DB.settings.staticCosts.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 
   // Expense categories
-  const ecList = document.getElementById('expense-categories-list');
-  ecList.innerHTML = (s.expenseCategories||[]).map((c,i) => `
+  document.getElementById('expense-categories-list').innerHTML=(s.expenseCategories||[]).map((c,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${c}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;"
-        oninput="DB.settings.expenseCategories[${i}]=this.value"/>
+      <input type="text" value="${c}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.expenseCategories[${i}]=this.value"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.expenseCategories.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 
   // Staff roles
-  const srList = document.getElementById('staff-roles-list');
-  srList.innerHTML = (s.staffRoles||[]).map((r,i) => `
+  document.getElementById('staff-roles-list').innerHTML=(s.staffRoles||[]).map((r,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${r}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;"
-        oninput="DB.settings.staffRoles[${i}]=this.value"/>
+      <input type="text" value="${r}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.staffRoles[${i}]=this.value"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.staffRoles.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 
   // Event types
-  const etList = document.getElementById('event-types-list');
-  etList.innerHTML = (s.eventTypes||[]).map((t,i) => `
+  document.getElementById('event-types-list').innerHTML=(s.eventTypes||[]).map((t,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${t}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:6px;"
-        oninput="DB.settings.eventTypes[${i}]=this.value"/>
+      <input type="text" value="${t}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.eventTypes[${i}]=this.value"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.eventTypes.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 }
 
-function addDrinkDefault() { DB.settings.drinkDefaults.push({name:'New Drink',oz:4}); renderSettings(); }
-function addExpenseCategory() { DB.settings.expenseCategories.push('New Category'); renderSettings(); }
-function addStaffRole() { DB.settings.staffRoles.push('New Role'); renderSettings(); }
-function addEventType() { DB.settings.eventTypes.push('New Type'); renderSettings(); }
+function toggleBottleSize(spiritIdx,bs,checked){
+  const sizes=DB.settings.spiritsLibrary[spiritIdx].bottleSizes||[750];
+  if(checked&&!sizes.includes(bs))sizes.push(bs);
+  if(!checked&&sizes.includes(bs))sizes.splice(sizes.indexOf(bs),1);
+  DB.settings.spiritsLibrary[spiritIdx].bottleSizes=sizes;
+}
 
-function saveSettings() {
-  DB.settings.bizName = document.getElementById('s-biz-name').value;
-  DB.settings.ownerName = document.getElementById('s-owner-name').value;
-  DB.settings.phone = document.getElementById('s-phone').value;
-  DB.settings.email = document.getElementById('s-email').value;
-  DB.settings.website = document.getElementById('s-website').value;
-  DB.settings.priceAdult = parseFloat(document.getElementById('s-price-adult').value)||35;
-  DB.settings.priceKid = parseFloat(document.getElementById('s-price-kid').value)||15;
-  DB.settings.drinksPerAdultHour = parseFloat(document.getElementById('s-dpa').value)||1.5;
-  DB.settings.drinksPerKidHour = parseFloat(document.getElementById('s-dpk').value)||0.5;
-  DB.settings.revenueTarget = parseFloat(document.getElementById('s-rev-target').value)||100000;
-  saveDB();
-  toast('Settings saved!');
+function addSpiritToLibrary(){DB.settings.spiritsLibrary.push({id:uid(),name:'New Spirit',oz:2,bottleSizes:[750,1750]});renderSettings();}
+function addRecipe(){
+  const lib=DB.settings.spiritsLibrary||[];
+  DB.settings.recipes.push({id:uid(),name:'New Cocktail',spiritId:lib[0]?.id||'',ingredients:[{name:'Spirit',qty:2,unit:'oz'},{name:'Mixer',qty:3,unit:'oz'}]});
+  renderSettings();
+}
+function addStaticCost(){DB.settings.staticCosts.push({id:uid(),name:'New Item',costPerGuest:0.25});renderSettings();}
+function addExpenseCategory(){DB.settings.expenseCategories.push('New Category');renderSettings();}
+function addStaffRole(){DB.settings.staffRoles.push('New Role');renderSettings();}
+function addEventType(){DB.settings.eventTypes.push('New Type');renderSettings();}
+
+function saveSettings(){
+  DB.settings.bizName=document.getElementById('s-biz-name').value;
+  DB.settings.ownerName=document.getElementById('s-owner-name').value;
+  DB.settings.phone=document.getElementById('s-phone').value;
+  DB.settings.email=document.getElementById('s-email').value;
+  DB.settings.priceAdult=parseFloat(document.getElementById('s-price-adult').value)||35;
+  DB.settings.priceKid=parseFloat(document.getElementById('s-price-kid').value)||15;
+  DB.settings.revenueTarget=parseFloat(document.getElementById('s-rev-target').value)||100000;
+  saveDB();toast('All settings saved!');
 }
 
 // ================================================================
-//  RENDER ALL & INIT
+// INIT
 // ================================================================
-function renderAll() {
-  renderOrders();
-  renderInventory();
-  renderExpenses();
-  renderSuppliers();
-  renderEquipment();
-  renderTodos();
+function renderAll(){
+  renderOrders();renderInventory();renderExpenses();renderSuppliers();renderEquipment();renderTodos();
 }
-
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
 });
-
-// Init
-loadDB();
-renderAll();
-initCalc();
+loadDB();renderAll();initCalc();
 </script>
 </body>
 </html>
