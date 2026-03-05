@@ -72,8 +72,15 @@ tr:hover td{background:rgba(200,169,110,.04);}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);}
 .form-group textarea{resize:vertical;min-height:70px;}
 select option{background:var(--surface2);}
-.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;}
-.form-section-title{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+.form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:0;margin-bottom:16px;overflow:hidden;}
+.form-section-inner{padding:20px;}
+.form-section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;user-select:none;transition:background .15s;}
+.form-section-header:hover{background:var(--surface2);}
+.form-section-title{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin:0;}
+.form-section-chevron{font-size:11px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;}
+.form-section.collapsed .form-section-chevron{transform:rotate(-90deg);}
+.form-section.collapsed .form-section-inner{display:none;}
+.form-section-header-meta{font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;margin-left:10px;}
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.open{display:flex;}
@@ -194,8 +201,12 @@ select option{background:var(--surface2);}
     <!-- LEFT COLUMN -->
     <div>
       <!-- EVENT DETAILS -->
-      <div class="form-section">
-        <div class="form-section-title">Event Details</div>
+      <div class="form-section" id="cs-calc-event">
+        <div class="form-section-header" onclick="toggleSection('cs-calc-event')">
+          <span class="form-section-title">Event Details</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+        <div class="form-section-inner">
         <div class="form-grid">
           <div class="form-group">
             <label>Load from Order</label>
@@ -222,36 +233,57 @@ select option{background:var(--surface2);}
             <button class="pace-btn" id="pace-heavy" onclick="setPace('heavy')">🥃 Heavy (1.5/hr)</button>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- DRINK MENU & POPULARITY -->
-      <div class="form-section">
-        <div class="form-section-title">Drink Menu — Popularity % & Bottle Calculation</div>
+      <div class="form-section" id="cs-calc-menu">
+        <div class="form-section-header" onclick="toggleSection('cs-calc-menu')">
+          <span class="form-section-title">Drink Menu — Popularity % &amp; Bottle Calculation</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+        <div class="form-section-inner">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Popularity % must total 100%. Each spirit's oz per serving comes from Settings.</div>
         <div id="drink-menu-list"></div>
         <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addDrinkToMenu()">+ Add Cocktail</button>
         <div id="pct-warning" style="color:var(--danger);font-size:12px;margin-top:8px;display:none;">⚠ Percentages must total 100%</div>
+        </div>
       </div>
 
       <!-- RECIPES / SHOPPING LIST -->
-      <div class="form-section">
-        <div class="form-section-title">Auto-Generated Shopping List</div>
+      <div class="form-section" id="cs-calc-shop">
+        <div class="form-section-header" onclick="toggleSection('cs-calc-shop')">
+          <span class="form-section-title">Auto-Generated Shopping List</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+        <div class="form-section-inner">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Based on drink quantities above + recipes in Settings. Includes spirits, mixers, and garnishes.</div>
         <div id="shopping-list-output"></div>
+        </div>
       </div>
 
       <!-- STATIC EVENT COSTS (per guest) -->
-      <div class="form-section">
-        <div class="form-section-title">Static Event Costs (per guest)</div>
+      <div class="form-section" id="cs-calc-static">
+        <div class="form-section-header" onclick="toggleSection('cs-calc-static')">
+          <span class="form-section-title">Static Event Costs (per guest)</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+        <div class="form-section-inner">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Each item cost × total guests. Add/edit items in Settings.</div>
         <div id="static-costs-calc"></div>
+        </div>
       </div>
 
       <!-- LABOR -->
-      <div class="form-section">
-        <div class="form-section-title">Labor</div>
+      <div class="form-section" id="cs-calc-labor">
+        <div class="form-section-header" onclick="toggleSection('cs-calc-labor')">
+          <span class="form-section-title">Labor</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+        <div class="form-section-inner">
         <div id="labor-list"></div>
         <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addLaborRow()">+ Add Staff</button>
+        </div>
       </div>
     </div>
 
@@ -354,63 +386,112 @@ select option{background:var(--surface2);}
   </div>
   <div class="settings-grid">
 
-    <div class="form-section">
-      <div class="form-section-title">Business Info</div>
+    <div class="form-section" id="cs-s-biz">
+      <div class="form-section-header" onclick="toggleSection('cs-s-biz')">
+        <span class="form-section-title">Business Info</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div class="form-grid">
         <div class="form-group"><label>Business Name</label><input type="text" id="s-biz-name"/></div>
         <div class="form-group"><label>Your Name</label><input type="text" id="s-owner-name"/></div>
         <div class="form-group"><label>Phone</label><input type="text" id="s-phone"/></div>
         <div class="form-group"><label>Email</label><input type="text" id="s-email"/></div>
       </div>
+      </div>
     </div>
 
-    <div class="form-section">
-      <div class="form-section-title">Default Pricing &amp; Rates</div>
+    <div class="form-section" id="cs-s-pricing">
+      <div class="form-section-header" onclick="toggleSection('cs-s-pricing')">
+        <span class="form-section-title">Default Pricing &amp; Rates</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div class="form-grid">
         <div class="form-group"><label>Default Price / Adult ($)</label><input type="number" id="s-price-adult" value="35"/></div>
         <div class="form-group"><label>Default Price / Kid ($)</label><input type="number" id="s-price-kid" value="15"/></div>
         <div class="form-group"><label>Revenue Target ($)</label><input type="number" id="s-rev-target" value="100000"/></div>
       </div>
+      </div>
+    </div>
+
+    <!-- INGREDIENT COST LIBRARY -->
+    <div class="form-section" id="cs-s-inglib" style="grid-column:1/-1;">
+      <div class="form-section-header" onclick="toggleSection('cs-s-inglib')">
+        <span class="form-section-title">🍋 Ingredient Cost Library — cost per unit for mixers &amp; garnishes</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+          Set cost per unit for each mixer or garnish once here. The Event Calculator automatically multiplies by quantity used across all recipes.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px;" id="ingredient-library-list"></div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addIngredientToLibrary()">+ Add Ingredient</button>
+      </div>
     </div>
 
     <!-- SPIRITS LIBRARY -->
-    <div class="form-section" style="grid-column:1/-1;">
-      <div class="form-section-title">🍾 Spirits Library — oz per serving &amp; bottle sizes</div>
+    <div class="form-section" id="cs-s-spirits" style="grid-column:1/-1;">
+      <div class="form-section-header" onclick="toggleSection('cs-s-spirits')">
+        <span class="form-section-title">🍾 Spirits Library — oz per serving &amp; bottle sizes</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
         These are your base spirits. Set oz per serving and available bottle sizes. Used for bottle calculations in the Event Calculator.
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:8px;" id="spirits-library-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addSpiritToLibrary()">+ Add Spirit</button>
+      </div>
     </div>
 
     <!-- COCKTAIL RECIPES -->
-    <div class="form-section" style="grid-column:1/-1;">
-      <div class="form-section-title">🍹 Cocktail Recipes — Ingredients &amp; Mixers</div>
+    <div class="form-section" id="cs-s-recipes" style="grid-column:1/-1;">
+      <div class="form-section-header" onclick="toggleSection('cs-s-recipes')">
+        <span class="form-section-title">🍹 Cocktail Recipes — Ingredients &amp; Mixers</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
         For each cocktail, add every ingredient with quantity and unit. This drives the auto-generated shopping list.
       </div>
       <div id="recipes-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addRecipe()">+ Add Recipe</button>
+      </div>
     </div>
 
     <!-- STATIC EVENT COSTS -->
-    <div class="form-section" style="grid-column:1/-1;">
-      <div class="form-section-title">🥤 Static Per-Guest Costs (cups, ice, straws, etc.)</div>
+    <div class="form-section" id="cs-s-static" style="grid-column:1/-1;">
+      <div class="form-section-header" onclick="toggleSection('cs-s-static')">
+        <span class="form-section-title">🥤 Static Per-Guest Costs (cups, ice, straws, etc.)</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
         Enter a cost per guest for each static item. In the Event Calculator these multiply by total guest count automatically.
       </div>
       <div id="static-costs-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addStaticCost()">+ Add Item</button>
+      </div>
     </div>
 
-    <div class="form-section">
-      <div class="form-section-title">Expense Categories</div>
+    <div class="form-section" id="cs-s-excat">
+      <div class="form-section-header" onclick="toggleSection('cs-s-excat')">
+        <span class="form-section-title">Expense Categories</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div id="expense-categories-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="addExpenseCategory()">+ Add Category</button>
+      </div>
     </div>
 
-    <div class="form-section">
-      <div class="form-section-title">Staff Roles &amp; Event Types</div>
+    <div class="form-section" id="cs-s-staff">
+      <div class="form-section-header" onclick="toggleSection('cs-s-staff')">
+        <span class="form-section-title">Staff Roles &amp; Event Types</span>
+        <span class="form-section-chevron">▾</span>
+      </div>
+      <div class="form-section-inner">
       <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Staff Roles</div>
       <div id="staff-roles-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px;margin-bottom:16px" onclick="addStaffRole()">+ Add Role</button>
@@ -418,6 +499,7 @@ select option{background:var(--surface2);}
       <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:12px;">Event Types</div>
       <div id="event-types-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addEventType()">+ Add Type</button>
+      </div>
     </div>
 
   </div>
@@ -997,6 +1079,32 @@ function recalc(){
   // Shopping list
   renderShoppingList(calcMenu,recipes,lib,totalAdultDrinks);
 
+  // Mixer & Garnish cost — look up each ingredient in the library
+  const ingLib=DB.settings.ingredientLibrary||[];
+  let mixerGarnishCost=0;
+  const mixerCostRows=[];
+  const mgAgg={};
+  calcMenu.forEach(row=>{
+    const recipe=recipes.find(r=>r.id===row.recipeId);if(!recipe)return;
+    const numDrinks=totalAdultDrinks*(row.pct/100);
+    const allMG=[
+      ...(recipe.mixersGarnishes||[]),
+      ...(recipe.alcoholicIngredients||[]).filter(ai=>!ai.spiritId)
+    ];
+    allMG.forEach(ing=>{
+      const key=ing.name.toLowerCase()+'__'+(ing.unit||'');
+      if(!mgAgg[key])mgAgg[key]={name:ing.name,unit:ing.unit,totalQty:0};
+      mgAgg[key].totalQty+=ing.qty*numDrinks;
+    });
+  });
+  Object.values(mgAgg).forEach(item=>{
+    const libItem=ingLib.find(l=>l.name.toLowerCase()===item.name.toLowerCase());
+    const cpu=libItem?libItem.costPerUnit:0;
+    const cost=item.totalQty*cpu;
+    mixerGarnishCost+=cost;
+    mixerCostRows.push({...item,costPerUnit:cpu,cost});
+  });
+
   // Static costs
   const totalGuests=adults+kids;
   let staticTotal=0;
@@ -1006,7 +1114,7 @@ function recalc(){
   renderStaticCostsCalc(staticRows,totalGuests);
 
   const laborCost=calcLabor.reduce((s,l)=>s+l.hours*l.rate,0);
-  const totalCost=totalBottleCost+staticTotal+laborCost;
+  const totalCost=totalBottleCost+mixerGarnishCost+staticTotal+laborCost;
   const profit=revTarget-totalCost;
   const margin=revTarget>0?((profit/revTarget)*100).toFixed(1):0;
 
@@ -1054,6 +1162,7 @@ function recalc(){
     <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Financials</div>
     ${summRow('Revenue',fc(revTarget),'var(--accent)')}
     ${summRow('Spirits Cost',fc(totalBottleCost),'var(--danger)')}
+    ${summRow('Mixer & Garnish Cost',fc(mixerGarnishCost),'var(--danger)')}
     ${summRow('Static Costs',fc(staticTotal),'var(--danger)')}
     ${summRow('Labor Cost',fc(laborCost),'var(--danger)')}
     ${summRow('Total Costs',fc(totalCost),'var(--danger)')}
@@ -1067,7 +1176,7 @@ function recalc(){
       <div class="stat-card" style="padding:10px 12px;"><div class="stat-label">Total Guests</div><div class="stat-value" style="font-size:18px;">${totalGuests}</div></div>
     </div>`;
 
-  window._calcState={adults,kids,hours,priceAdult,priceKid,pace,revTarget,totalAdultDrinks,drinkRows,bottleSummaryRows,totalBottles,totalBottleCost,staticRows,staticTotal,laborCost,totalCost,profit,margin,totalGuests};
+  window._calcState={adults,kids,hours,priceAdult,priceKid,pace,revTarget,totalAdultDrinks,drinkRows,bottleSummaryRows,totalBottles,totalBottleCost,mixerGarnishCost,mixerCostRows,staticRows,staticTotal,laborCost,totalCost,profit,margin,totalGuests};
 }
 
 function renderShoppingList(calcMenuRows,recipes,lib,totalAdultDrinks){
@@ -1190,6 +1299,17 @@ function generatePDF(){
         <tr><td><strong>Drinking Pace</strong></td><td>${PACE_MAP[calcPace]} drinks/hr</td><td><strong>Total Adult Drinks</strong></td><td>${Math.ceil(st.totalAdultDrinks||0)}</td></tr>
       </tbody></table>
     </div>
+    <div class="pdf-section"><h2>Mixer &amp; Garnish Cost</h2>
+      <table><thead><tr><th>Ingredient</th><th>Total Qty</th><th>Cost/Unit</th><th>Total Cost</th></tr></thead>
+      <tbody>${(st.mixerCostRows||[]).filter(r=>r.costPerUnit>0).map(r=>`<tr>
+        <td>${r.name}</td>
+        <td>${r.totalQty%1===0?r.totalQty:r.totalQty.toFixed(1)} ${r.unit}</td>
+        <td>${fc(r.costPerUnit)}</td>
+        <td><strong>${fc(r.cost)}</strong></td>
+      </tr>`).join('')}
+      <tr><td colspan="3" style="font-weight:700;">Total Mixer &amp; Garnish Cost</td><td><strong>${fc(st.mixerGarnishCost||0)}</strong></td></tr>
+      </tbody></table>
+    </div>
     <div class="pdf-section"><h2>Bottle Requirements (always rounded up)</h2>
       <table><thead><tr><th>Spirit</th><th>Oz Needed</th><th>Bottle Size</th><th>Bottles to Buy</th><th>Est. Cost</th></tr></thead>
       <tbody>${spiritRows}</tbody></table>
@@ -1212,6 +1332,7 @@ function generatePDF(){
         </div>
         <div>
           <div class="pdf-row"><span>Spirits Cost</span><span>${fc(st.totalBottleCost||0)}</span></div>
+          <div class="pdf-row"><span>Mixer &amp; Garnish Cost</span><span>${fc(st.mixerGarnishCost||0)}</span></div>
           <div class="pdf-row"><span>Static Costs</span><span>${fc(st.staticTotal||0)}</span></div>
           <div class="pdf-row"><span>Labor Cost</span><span>${fc(st.laborCost||0)}</span></div>
           <div class="pdf-row total"><span>Total Costs</span><span>${fc(st.totalCost||0)}</span></div>
@@ -1251,11 +1372,10 @@ function generateClientPDF(){
   // --- SPIRITS: humanized bottle lines ---
   const spiritLines=(st.bottleSummaryRows||[]).map(r=>{
     const sizeLabel=r.bottleSize===750?'750ml':r.bottleSize===1750?'1.75L':r.bottleSize===1000?'1L':(r.bottleSize+'ml');
-    const costStr=r.costPerBottle>0?` &nbsp;<span style="color:#888;font-size:12px;">(${fc(r.spiritCost)})</span>`:'';
     return`<tr>
       <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;">
         <div style="font-size:16px;font-weight:600;color:#1a1a1a;">${r.bottlesNeeded} × ${r.spirit.name}</div>
-        <div style="font-size:12px;color:#888;margin-top:2px;">${sizeLabel} bottles${costStr}</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">${sizeLabel} bottles</div>
       </td>
       <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;text-align:right;vertical-align:top;">
         <span style="font-size:22px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${r.bottlesNeeded}</span>
@@ -1284,7 +1404,7 @@ function generateClientPDF(){
       <span style="font-size:15px;font-weight:500;color:#1a1a1a;">${it.name}</span>
     </td>
     <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
-      <span style="font-size:16px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
+      <span style="font-size:16px;font-weight:700;color:#555;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
       <span style="font-size:12px;color:#888;margin-left:4px;">${it.unit}</span>
     </td>
   </tr>`).join('');
@@ -1293,10 +1413,9 @@ function generateClientPDF(){
   const staticLines=(st.staticRows||[]).map(r=>`<tr>
     <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;">
       <span style="font-size:15px;font-weight:500;color:#1a1a1a;">${r.name}</span>
-      <span style="font-size:12px;color:#aaa;margin-left:8px;">${fc(r.costPerGuest)}/guest × ${totalGuests}</span>
     </td>
     <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
-      <span style="font-size:14px;font-weight:600;color:#555;font-family:'DM Mono',monospace;">${fc(r.cost)}</span>
+      <span style="font-size:13px;color:#888;font-family:'DM Sans',sans-serif;">Included</span>
     </td>
   </tr>`).join('');
 
@@ -1385,34 +1504,23 @@ function generateClientPDF(){
       <table style="width:100%;border-collapse:collapse;">${spiritLines}</table>
     </div>`:''}
 
-    <!-- MIXERS & GARNISHES -->
+    <!-- MIXERS & GARNISHES — no costs on client PDF -->
     ${mixerLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
       <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers &amp; Garnishes</div>
       <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Fresh ingredients calculated per drink, per guest</div>
       <table style="width:100%;border-collapse:collapse;">${mixerLines}</table>
     </div>`:''}
 
-    <!-- STATIC ITEMS -->
+    <!-- STATIC ITEMS — quantities only, no costs -->
     ${staticLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
       <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Supplies &amp; Essentials</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Per-guest items included in event cost</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Per-guest items included in your service</div>
       <table style="width:100%;border-collapse:collapse;">${staticLines}</table>
     </div>`:''}
 
-    <!-- COST SUMMARY -->
-    <div style="padding:28px 48px;background:#fdfcfa;">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:16px;font-family:'DM Sans',sans-serif;">Cost Summary</div>
-      <div style="max-width:340px;margin-left:auto;">
-        ${totalSpirits>0?`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;">
-          <span style="color:#555;">Spirits &amp; Bottles</span><span style="font-weight:600;">${fc(totalSpirits)}</span></div>`:''}
-        ${totalStatic>0?`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;">
-          <span style="color:#555;">Supplies &amp; Essentials</span><span style="font-weight:600;">${fc(totalStatic)}</span></div>`:''}
-        <div style="display:flex;justify-content:space-between;padding:14px 0 8px;font-family:'DM Sans',sans-serif;">
-          <span style="font-size:16px;font-weight:700;color:#1a1a1a;">Estimated Total</span>
-          <span style="font-size:22px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fc(grandTotal)}</span>
-        </div>
-        <div style="font-size:11px;color:#aaa;font-family:'DM Sans',sans-serif;">Excludes labor and service fees. Final invoice may vary.</div>
-      </div>
+    <!-- NO COST SUMMARY ON CLIENT PDF -->
+    <div style="padding:24px 48px;background:#fdfcfa;border-top:1px solid #f0ede8;">
+      <div style="font-size:12px;color:#aaa;font-family:'DM Sans',sans-serif;text-align:center;">Questions? Reach out to ${owner||biz} &bull; ${phone||''} ${email?'&bull; '+email:''}</div>
     </div>
 
     <!-- FOOTER -->
@@ -1742,6 +1850,27 @@ function renderSettings(){
   document.getElementById('s-price-kid').value=s.priceKid||15;
   document.getElementById('s-rev-target').value=s.revenueTarget||100000;
 
+  // Ingredient Library
+  const ingLib=DB.settings.ingredientLibrary||[];
+  document.getElementById('ingredient-library-list').innerHTML=ingLib.map((il,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 80px 100px auto;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Ingredient Name</div>
+        <input type="text" value="${il.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].name=this.value"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Unit</div>
+        <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;width:100%;font-size:12px;" onchange="DB.settings.ingredientLibrary[${i}].unit=this.value">
+          ${['oz','ml','pc','g','tsp','tbsp','cup','dash','drop'].map(u=>`<option value="${u}" ${u===il.unit?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">$ per unit</div>
+        <input type="number" value="${il.costPerUnit}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].costPerUnit=parseFloat(this.value)||0"/>
+      </div>
+      <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="DB.settings.ingredientLibrary.splice(${i},1);renderSettings()">✕</button>
+    </div>`).join('') || '<div style="color:var(--text-muted);font-size:13px;">No ingredients yet. Add your first one above.</div>';
+
   // Spirits Library
   document.getElementById('spirits-library-list').innerHTML=(s.spiritsLibrary||[]).map((sp,i)=>`
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1fr 80px auto auto;gap:8px;align-items:center;">
@@ -1767,11 +1896,19 @@ function renderSettings(){
   // Recipes
   const UNITS=['oz','ml','cup','tbsp','tsp','g','tsp (level)','tbsp (level)','pc','dash','drop','strip'];
   document.getElementById('recipes-list').innerHTML=(s.recipes||[]).map((r,ri)=>`
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;">
+    <div class="form-section" id="cs-recipe-${r.id}" style="margin-bottom:12px;">
+      <div class="form-section-header" onclick="toggleSection('cs-recipe-${r.id}')">
+        <span class="form-section-title" style="font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);">${r.name||'New Cocktail'}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--text-muted);">${(r.alcoholicIngredients||[]).length} spirits · ${(r.mixersGarnishes||[]).length} mixers</span>
+          <span class="form-section-chevron">▾</span>
+        </div>
+      </div>
+      <div class="form-section-inner">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div style="flex:1;margin-right:12px;">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail Name</div>
-          <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;width:100%;font-size:14px;font-weight:600;" oninput="DB.settings.recipes[${ri}].name=this.value"/>
+          <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;width:100%;font-size:14px;font-weight:600;" oninput="DB.settings.recipes[${ri}].name=this.value;document.querySelector('#cs-recipe-${r.id} .form-section-title').textContent=this.value||'New Cocktail'"/>
         </div>
         <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes.splice(${ri},1);renderSettings()">Remove Recipe</button>
       </div>
@@ -1818,6 +1955,7 @@ function renderSettings(){
           <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].mixersGarnishes.splice(${mi},1);renderSettings()">✕</button>
         </div>`).join('')}
       <button class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="DB.settings.recipes[${ri}].mixersGarnishes.push({name:'',qty:1,unit:'oz'});renderSettings()">+ Add Mixer / Garnish</button>
+      </div>
     </div>`).join('');
 
   // Static costs
@@ -1854,6 +1992,7 @@ function renderSettings(){
       <input type="text" value="${t}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.eventTypes[${i}]=this.value"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.eventTypes.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
+  setTimeout(()=>{ applyCollapseState(); applyCollapseStateRecipes(); }, 0);
 }
 
 function toggleBottleSize(spiritIdx,bs,checked){
@@ -1863,6 +2002,7 @@ function toggleBottleSize(spiritIdx,bs,checked){
   DB.settings.spiritsLibrary[spiritIdx].bottleSizes=sizes;
 }
 
+function addIngredientToLibrary(){DB.settings.ingredientLibrary=DB.settings.ingredientLibrary||[];DB.settings.ingredientLibrary.push({id:uid(),name:'New Ingredient',unit:'oz',costPerUnit:0.05});renderSettings();}
 function addSpiritToLibrary(){DB.settings.spiritsLibrary.push({id:uid(),name:'New Spirit',oz:2,bottleSizes:[750,1750]});renderSettings();}
 function addRecipe(){
   const lib=DB.settings.spiritsLibrary||[];
@@ -1889,6 +2029,57 @@ function saveSettings(){
   saveDB();toast('All settings saved!');
 }
 
+
+// ================================================================
+// COLLAPSIBLE SECTIONS
+// ================================================================
+const COLLAPSE_KEY = 'barops_collapse_state';
+
+function loadCollapseState() {
+  try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function saveCollapseState(state) {
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state)); }
+  catch(e) {}
+}
+
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isCollapsed = el.classList.toggle('collapsed');
+  const state = loadCollapseState();
+  state[id] = isCollapsed;
+  saveCollapseState(state);
+}
+
+function applyCollapseState() {
+  const state = loadCollapseState();
+  document.querySelectorAll('.form-section[id^="cs-"]').forEach(el => {
+    const id = el.id;
+    // If we have a saved state, apply it. Otherwise default to open.
+    if (state[id] === true) {
+      el.classList.add('collapsed');
+    } else {
+      el.classList.remove('collapsed');
+    }
+  });
+}
+
+// Called after Settings re-renders so dynamic recipe sections get state applied too
+function applyCollapseStateRecipes() {
+  const state = loadCollapseState();
+  document.querySelectorAll('.form-section[id^="cs-recipe-"]').forEach(el => {
+    const id = el.id;
+    if (state[id] === true) {
+      el.classList.add('collapsed');
+    } else {
+      el.classList.remove('collapsed');
+    }
+  });
+}
+
 // ================================================================
 // INIT
 // ================================================================
@@ -1898,7 +2089,7 @@ function renderAll(){
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
 });
-loadDB();renderAll();initCalc();
+loadDB();renderAll();initCalc();applyCollapseState();
 </script>
 </body>
 </html>
