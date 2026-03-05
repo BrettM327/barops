@@ -1670,12 +1670,13 @@ function generateClientPDF(){
   });
   const mixerItems=Object.values(agg);
   const mixerLines=mixerItems.map(it=>`<tr>
-    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;">
-      <span style="font-size:15px;font-weight:500;color:#1a1a1a;">${it.name}</span>
+    <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;">
+      <span style="font-size:15px;font-weight:600;color:#1a1a1a;">${it.name}</span>
+      <span style="font-size:13px;color:#888;margin-left:8px;font-family:'DM Sans',sans-serif;">total needed</span>
     </td>
-    <td style="padding:10px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
-      <span style="font-size:16px;font-weight:700;color:#555;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
-      <span style="font-size:12px;color:#888;margin-left:4px;">${it.unit}</span>
+    <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;text-align:right;white-space:nowrap;">
+      <span style="font-size:20px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
+      <span style="font-size:13px;color:#888;margin-left:4px;font-weight:600;">${it.unit}</span>
     </td>
   </tr>`).join('');
 
@@ -1725,9 +1726,9 @@ function generateClientPDF(){
     <div style="background:#1a1a1a;padding:36px 48px 28px;color:#fff;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c8a96e;margin-bottom:6px;font-family:'DM Sans',sans-serif;">Event Services Proposal</div>
-          <div style="font-size:34px;font-weight:700;letter-spacing:-.01em;">${biz}</div>
-          ${owner?`<div style="font-size:14px;color:#aaa;margin-top:4px;font-family:'DM Sans',sans-serif;">${owner}</div>`:''}
+          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c8a96e;margin-bottom:6px;font-family:'DM Sans',sans-serif;">Event Services Proposal — ${biz}</div>
+          <div style="font-size:34px;font-weight:700;letter-spacing:-.01em;">${client||'Your Event'}</div>
+          <div style="font-size:16px;color:#aaa;margin-top:6px;font-family:'DM Sans',sans-serif;">${type||''}</div>
         </div>
         <div style="text-align:right;font-family:'DM Sans',sans-serif;">
           ${phone?`<div style="font-size:13px;color:#ccc;">${phone}</div>`:''}
@@ -1776,8 +1777,8 @@ function generateClientPDF(){
 
     <!-- MIXERS & GARNISHES — no costs on client PDF -->
     ${mixerLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers &amp; Garnishes</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Fresh ingredients calculated per drink, per guest</div>
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers &amp; Garnishes — Shopping List</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Total quantities needed for your event — calculated per drink across all guests</div>
       <table style="width:100%;border-collapse:collapse;">${mixerLines}</table>
     </div>`:''}
 
