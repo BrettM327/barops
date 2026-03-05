@@ -727,6 +727,38 @@ select option{background:var(--surface2);}
 
 <script>
 // ================================================================
+// LOCK SCREEN
+// ================================================================
+// To change the password, update the value below and redeploy.
+const APP_PASSWORD = 'bartenderops2024';
+const UNLOCK_KEY = 'barops_unlocked';
+
+function initLockScreen(){
+  if(sessionStorage.getItem(UNLOCK_KEY) === 'yes'){
+    document.getElementById('lock-screen').classList.add('unlocked');
+  }
+  setTimeout(()=>{ const el=document.getElementById('lock-password'); if(el)el.focus(); },100);
+}
+
+function tryUnlock(){
+  const input = document.getElementById('lock-password').value;
+  const errEl = document.getElementById('lock-error');
+  if(input === APP_PASSWORD){
+    sessionStorage.setItem(UNLOCK_KEY,'yes');
+    document.getElementById('lock-screen').classList.add('unlocked');
+    errEl.textContent = '';
+  } else {
+    errEl.textContent = 'Incorrect password. Try again.';
+    document.getElementById('lock-password').value = '';
+    document.getElementById('lock-password').focus();
+    const card = document.querySelector('.lock-card');
+    card.style.animation = 'none';
+    card.offsetHeight;
+    card.style.animation = 'shake .4s ease';
+  }
+}
+
+// ================================================================
 // STATE
 // ================================================================
 let DB = {
@@ -2329,41 +2361,6 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
 });
 loadDB();renderAll();initCalc();applyCollapseState();
 initLockScreen();
-
-// ================================================================
-// LOCK SCREEN
-// ================================================================
-// To change the password, update the value below and redeploy.
-const APP_PASSWORD = 'BartenderOps2026';
-const UNLOCK_KEY = 'barops_unlocked';
-
-function initLockScreen(){
-  // Check if already unlocked in this session
-  if(sessionStorage.getItem(UNLOCK_KEY) === 'yes'){
-    document.getElementById('lock-screen').classList.add('unlocked');
-  }
-  // Auto-focus password field
-  setTimeout(()=>{ const el=document.getElementById('lock-password'); if(el)el.focus(); },100);
-}
-
-function tryUnlock(){
-  const input = document.getElementById('lock-password').value;
-  const errEl = document.getElementById('lock-error');
-  if(input === APP_PASSWORD){
-    sessionStorage.setItem(UNLOCK_KEY,'yes');
-    document.getElementById('lock-screen').classList.add('unlocked');
-    errEl.textContent = '';
-  } else {
-    errEl.textContent = 'Incorrect password. Try again.';
-    document.getElementById('lock-password').value = '';
-    document.getElementById('lock-password').focus();
-    // Shake animation
-    const card = document.querySelector('.lock-card');
-    card.style.animation = 'none';
-    card.offsetHeight; // reflow
-    card.style.animation = 'shake .4s ease';
-  }
-}
 
 </script>
 </body>
