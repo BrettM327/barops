@@ -782,10 +782,66 @@ const OZ_PER_ML=0.033814;
 // ================================================================
 // PERSISTENCE
 // ================================================================
+function migrateRecipe(r){
+  // Migrate old single-spiritId recipe format to new alcoholicIngredients + mixersGarnishes
+  if(r.alcoholicIngredients && r.mixersGarnishes) return r; // already v2 format
+  const migrated = {
+    id: r.id || uid(),
+    name: r.name || 'Unnamed Cocktail',
+    alcoholicIngredients: [],
+    mixersGarnishes: []
+  };
+  // Old format had a flat ingredients array and a single spiritId
+  (r.ingredients || []).forEach(ing => {
+    // Heuristic: if name matches the spirit name or it was the first ingredient, treat as alcoholic
+    const likelySpiritName = ing.name && (ing.unit === 'oz') &&
+      (DB.settings.spiritsLibrary || []).some(s => s.name.toLowerCase() === ing.name.toLowerCase());
+    if(likelySpiritName){
+      const sp = (DB.settings.spiritsLibrary || []).find(s => s.name.toLowerCase() === ing.name.toLowerCase());
+      migrated.alcoholicIngredients.push({
+        spiritId: sp ? sp.id : (r.spiritId || ''),
+        name: ing.name,
+        qty: ing.qty,
+        unit: ing.unit,
+        bottleSize: 750
+      });
+    } else {
+      migrated.mixersGarnishes.push({ name: ing.name, qty: ing.qty, unit: ing.unit });
+    }
+  });
+  return migrated;
+}
+
 function loadDB(){
   try{
     const s=localStorage.getItem('barops_v2');
-    if(s){const p=JSON.parse(s);DB={...DB,...p};DB.settings={...DB.settings,...p.settings};}
+    if(s){
+      const p=JSON.parse(s);
+      DB={...DB,...p};
+      DB.settings={...DB.settings,...p.settings};
+      // Migrate any recipes that are in the old format
+      if(DB.settings.recipes){
+        DB.settings.recipes=DB.settings.recipes.map(migrateRecipe);
+      }
+      // Ensure ingredientLibrary exists (added in later version)
+      if(!DB.settings.ingredientLibrary){
+        DB.settings.ingredientLibrary=[
+          {id:'il1',name:'Lime Juice',unit:'oz',costPerUnit:0.08},
+          {id:'il2',name:'Lemon Juice',unit:'oz',costPerUnit:0.07},
+          {id:'il3',name:'Agave Syrup',unit:'oz',costPerUnit:0.05},
+          {id:'il4',name:'Simple Syrup',unit:'oz',costPerUnit:0.03},
+          {id:'il5',name:'Triple Sec',unit:'oz',costPerUnit:0.12},
+          {id:'il6',name:'Soda Water',unit:'oz',costPerUnit:0.01},
+          {id:'il7',name:'Cola',unit:'oz',costPerUnit:0.02},
+          {id:'il8',name:'Sour Mix',unit:'oz',costPerUnit:0.04},
+          {id:'il9',name:'Egg White',unit:'oz',costPerUnit:0.06},
+          {id:'il10',name:'Salt (rim)',unit:'g',costPerUnit:0.01},
+          {id:'il11',name:'Lime Wedge',unit:'pc',costPerUnit:0.15},
+          {id:'il12',name:'Lemon Wedge',unit:'pc',costPerUnit:0.12},
+          {id:'il13',name:'Cherry',unit:'pc',costPerUnit:0.20}
+        ];
+      }
+    }
   }catch(e){}
   if(DB.orders.length){
     const nums=DB.orders.map(o=>parseInt(o.id.replace('OT-',''))).filter(n=>!isNaN(n));
