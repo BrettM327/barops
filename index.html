@@ -153,6 +153,7 @@ select option{background:var(--surface2);}
   <div class="topbar-actions">
     <button class="btn-icon" onclick="exportData()">⬇ Export Backup</button>
     <button class="btn-icon" onclick="document.getElementById('importFile').click()">⬆ Import Backup</button>
+    <button class="btn-icon" style="color:var(--warning);border-color:var(--warning);" onclick="resetSettings()">↺ Reset Settings</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"/>
   </div>
 </div>
@@ -456,7 +457,10 @@ select option{background:var(--surface2);}
         For each cocktail, add every ingredient with quantity and unit. This drives the auto-generated shopping list.
       </div>
       <div id="recipes-list"></div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addRecipe()">+ Add Recipe</button>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+        <button class="btn btn-secondary btn-sm" onclick="addRecipe()">+ Add Recipe</button>
+        <button class="btn btn-danger btn-sm" onclick="resetRecipesToDefault()" style="opacity:.7;">↺ Reset to Defaults</button>
+      </div>
       </div>
     </div>
 
@@ -776,20 +780,68 @@ let calcLabor=[];
 let calcPace='avg';
 let orderCounter=1;
 
+const DB_VERSION = 3; // bump this whenever recipe/settings structure changes
 const PACE_MAP={lite:0.75,avg:1.0,above:1.25,heavy:1.5};
 const OZ_PER_ML=0.033814;
 
 // ================================================================
 // PERSISTENCE
 // ================================================================
+const DEFAULT_RECIPES=[
+  {id:'r1',name:'Margarita',
+    alcoholicIngredients:[
+      {spiritId:'sl1',name:'Tequila',qty:2,unit:'oz',bottleSize:750},
+      {spiritId:'',name:'Triple Sec',qty:0.75,unit:'oz',bottleSize:750}
+    ],
+    mixersGarnishes:[
+      {name:'Lime Juice',qty:1,unit:'oz'},{name:'Agave Syrup',qty:0.5,unit:'oz'},
+      {name:'Salt (rim)',qty:2,unit:'g'},{name:'Lime Wedge',qty:1,unit:'pc'}
+    ]
+  },
+  {id:'r2',name:'Vodka Soda',
+    alcoholicIngredients:[{spiritId:'sl2',name:'Vodka',qty:2,unit:'oz',bottleSize:750}],
+    mixersGarnishes:[{name:'Soda Water',qty:4,unit:'oz'},{name:'Lime Wedge',qty:1,unit:'pc'}]
+  },
+  {id:'r3',name:'Whiskey Sour',
+    alcoholicIngredients:[{spiritId:'sl3',name:'Whiskey',qty:2,unit:'oz',bottleSize:750}],
+    mixersGarnishes:[
+      {name:'Lemon Juice',qty:1,unit:'oz'},{name:'Simple Syrup',qty:0.75,unit:'oz'},
+      {name:'Egg White',qty:0.5,unit:'oz'},{name:'Cherry',qty:1,unit:'pc'}
+    ]
+  },
+  {id:'r4',name:'Long Island Iced Tea',
+    alcoholicIngredients:[
+      {spiritId:'sl2',name:'Vodka',qty:0.5,unit:'oz',bottleSize:750},
+      {spiritId:'sl1',name:'Tequila',qty:0.5,unit:'oz',bottleSize:750},
+      {spiritId:'sl5',name:'Rum',qty:0.5,unit:'oz',bottleSize:750},
+      {spiritId:'sl4',name:'Gin',qty:0.5,unit:'oz',bottleSize:750},
+      {spiritId:'',name:'Triple Sec',qty:0.5,unit:'oz',bottleSize:750}
+    ],
+    mixersGarnishes:[
+      {name:'Sour Mix',qty:1,unit:'oz'},{name:'Cola',qty:2,unit:'oz'},
+      {name:'Lemon Wedge',qty:1,unit:'pc'}
+    ]
+  }
+];
+
+function resetRecipesToDefault(){
+  if(!confirm('Reset all recipes to defaults? Your custom recipes will be removed.')) return;
+  DB.settings.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+  saveDB();
+  renderSettings();
+  toast('Recipes reset to defaults.');
+}
+
 function migrateRecipe(r){
   // Migrate old single-spiritId recipe format to new alcoholicIngredients + mixersGarnishes
-  if(r.alcoholicIngredients && r.mixersGarnishes) return r; // already v2 format
+  // Only skip migration if arrays exist AND have actual content
+  if((r.alcoholicIngredients && r.alcoholicIngredients.length > 0) || (r.mixersGarnishes && r.mixersGarnishes.length > 0)) return r;
   const migrated = {
     id: r.id || uid(),
     name: r.name || 'Unnamed Cocktail',
-    alcoholicIngredients: [],
-    mixersGarnishes: []
+    // Preserve any existing content if arrays already have data
+    alcoholicIngredients: (r.alcoholicIngredients && r.alcoholicIngredients.length) ? r.alcoholicIngredients : [],
+    mixersGarnishes: (r.mixersGarnishes && r.mixersGarnishes.length) ? r.mixersGarnishes : []
   };
   // Old format had a flat ingredients array and a single spiritId
   (r.ingredients || []).forEach(ing => {
@@ -817,38 +869,141 @@ function loadDB(){
     const s=localStorage.getItem('barops_v2');
     if(s){
       const p=JSON.parse(s);
-      DB={...DB,...p};
-      DB.settings={...DB.settings,...p.settings};
-      // Migrate any recipes that are in the old format
-      if(DB.settings.recipes){
-        DB.settings.recipes=DB.settings.recipes.map(migrateRecipe);
-      }
-      // Ensure ingredientLibrary exists (added in later version)
-      if(!DB.settings.ingredientLibrary){
-        DB.settings.ingredientLibrary=[
-          {id:'il1',name:'Lime Juice',unit:'oz',costPerUnit:0.08},
-          {id:'il2',name:'Lemon Juice',unit:'oz',costPerUnit:0.07},
-          {id:'il3',name:'Agave Syrup',unit:'oz',costPerUnit:0.05},
-          {id:'il4',name:'Simple Syrup',unit:'oz',costPerUnit:0.03},
-          {id:'il5',name:'Triple Sec',unit:'oz',costPerUnit:0.12},
-          {id:'il6',name:'Soda Water',unit:'oz',costPerUnit:0.01},
-          {id:'il7',name:'Cola',unit:'oz',costPerUnit:0.02},
-          {id:'il8',name:'Sour Mix',unit:'oz',costPerUnit:0.04},
-          {id:'il9',name:'Egg White',unit:'oz',costPerUnit:0.06},
-          {id:'il10',name:'Salt (rim)',unit:'g',costPerUnit:0.01},
-          {id:'il11',name:'Lime Wedge',unit:'pc',costPerUnit:0.15},
-          {id:'il12',name:'Lemon Wedge',unit:'pc',costPerUnit:0.12},
-          {id:'il13',name:'Cherry',unit:'pc',costPerUnit:0.20}
-        ];
+      // If saved version doesn't match current, wipe settings so defaults reload cleanly
+      // Business data (orders, spirits inventory, expenses etc.) is preserved
+      if(!p._version || p._version < DB_VERSION){
+        console.log('BarOps: schema updated, resetting settings to defaults. Your orders and inventory are kept.');
+        // Only wipe settings — keep all business data
+        DB.orders=p.orders||[];
+        DB.spirits=p.spirits||[];
+        DB.consumables=p.consumables||[];
+        DB.expenses=p.expenses||[];
+        DB.suppliers=p.suppliers||[];
+        DB.equipment=p.equipment||[];
+        DB.todos=p.todos||[];
+        // Settings stay as fresh defaults (recipes, ingredient library, etc.)
+        saveDB(); // re-save with new version
+      } else {
+        DB={...DB,...p};
+        DB.settings={...DB.settings,...p.settings};
+        // Migrate any recipes that are in the old format
+        if(DB.settings.recipes){
+          DB.settings.recipes=DB.settings.recipes.map(migrateRecipe);
+        }
+        // Ensure ingredientLibrary exists
+        if(!DB.settings.ingredientLibrary){
+          DB.settings.ingredientLibrary=[
+            {id:'il1',name:'Lime Juice',unit:'oz',costPerUnit:0.08},
+            {id:'il2',name:'Lemon Juice',unit:'oz',costPerUnit:0.07},
+            {id:'il3',name:'Agave Syrup',unit:'oz',costPerUnit:0.05},
+            {id:'il4',name:'Simple Syrup',unit:'oz',costPerUnit:0.03},
+            {id:'il5',name:'Triple Sec',unit:'oz',costPerUnit:0.12},
+            {id:'il6',name:'Soda Water',unit:'oz',costPerUnit:0.01},
+            {id:'il7',name:'Cola',unit:'oz',costPerUnit:0.02},
+            {id:'il8',name:'Sour Mix',unit:'oz',costPerUnit:0.04},
+            {id:'il9',name:'Egg White',unit:'oz',costPerUnit:0.06},
+            {id:'il10',name:'Salt (rim)',unit:'g',costPerUnit:0.01},
+            {id:'il11',name:'Lime Wedge',unit:'pc',costPerUnit:0.15},
+            {id:'il12',name:'Lemon Wedge',unit:'pc',costPerUnit:0.12},
+            {id:'il13',name:'Cherry',unit:'pc',costPerUnit:0.20}
+          ];
+        }
       }
     }
-  }catch(e){}
+  }catch(e){console.error('loadDB error:',e);}
   if(DB.orders.length){
     const nums=DB.orders.map(o=>parseInt(o.id.replace('OT-',''))).filter(n=>!isNaN(n));
     if(nums.length)orderCounter=Math.max(...nums)+1;
   }
 }
-function saveDB(){try{localStorage.setItem('barops_v2',JSON.stringify(DB));}catch(e){}}
+function saveDB(){try{const payload={...DB,_version:DB_VERSION};localStorage.setItem('barops_v2',JSON.stringify(payload));}catch(e){}}
+function resetSettings(){
+  if(!confirm('Reset all Settings to defaults? Your orders, inventory, and expenses will NOT be affected.')) return;
+  // Wipe only the settings key — rebuild from code defaults
+  const fresh = {
+    bizName:'BarOps',ownerName:'',phone:'',email:'',
+    priceAdult:35,priceKid:15,revenueTarget:100000,
+    spiritsLibrary:[
+      {id:'sl1',name:'Tequila',oz:2,bottleSizes:[750,1750]},
+      {id:'sl2',name:'Vodka',oz:2,bottleSizes:[750,1750]},
+      {id:'sl3',name:'Whiskey',oz:2,bottleSizes:[750,1750]},
+      {id:'sl4',name:'Gin',oz:2,bottleSizes:[750,1750]},
+      {id:'sl5',name:'Rum',oz:2,bottleSizes:[750,1750]},
+      {id:'sl6',name:'White Wine',oz:5,bottleSizes:[750]},
+      {id:'sl7',name:'Red Wine',oz:5,bottleSizes:[750]},
+      {id:'sl8',name:'Beer',oz:12,bottleSizes:[355]}
+    ],
+    ingredientLibrary:[
+      {id:'il1',name:'Lime Juice',unit:'oz',costPerUnit:0.08},
+      {id:'il2',name:'Lemon Juice',unit:'oz',costPerUnit:0.07},
+      {id:'il3',name:'Agave Syrup',unit:'oz',costPerUnit:0.05},
+      {id:'il4',name:'Simple Syrup',unit:'oz',costPerUnit:0.03},
+      {id:'il5',name:'Triple Sec',unit:'oz',costPerUnit:0.12},
+      {id:'il6',name:'Soda Water',unit:'oz',costPerUnit:0.01},
+      {id:'il7',name:'Cola',unit:'oz',costPerUnit:0.02},
+      {id:'il8',name:'Sour Mix',unit:'oz',costPerUnit:0.04},
+      {id:'il9',name:'Egg White',unit:'oz',costPerUnit:0.06},
+      {id:'il10',name:'Salt (rim)',unit:'g',costPerUnit:0.01},
+      {id:'il11',name:'Lime Wedge',unit:'pc',costPerUnit:0.15},
+      {id:'il12',name:'Lemon Wedge',unit:'pc',costPerUnit:0.12},
+      {id:'il13',name:'Cherry',unit:'pc',costPerUnit:0.20}
+    ],
+    recipes:[
+      {id:'r1',name:'Margarita',
+        alcoholicIngredients:[
+          {spiritId:'sl1',name:'Tequila',qty:2,unit:'oz',bottleSize:750},
+          {spiritId:'',name:'Triple Sec',qty:0.75,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Lime Juice',qty:1,unit:'oz'},{name:'Agave Syrup',qty:0.5,unit:'oz'},
+          {name:'Salt (rim)',qty:2,unit:'g'},{name:'Lime Wedge',qty:1,unit:'pc'}
+        ]
+      },
+      {id:'r2',name:'Vodka Soda',
+        alcoholicIngredients:[{spiritId:'sl2',name:'Vodka',qty:2,unit:'oz',bottleSize:750}],
+        mixersGarnishes:[{name:'Soda Water',qty:4,unit:'oz'},{name:'Lime Wedge',qty:1,unit:'pc'}]
+      },
+      {id:'r3',name:'Whiskey Sour',
+        alcoholicIngredients:[{spiritId:'sl3',name:'Whiskey',qty:2,unit:'oz',bottleSize:750}],
+        mixersGarnishes:[
+          {name:'Lemon Juice',qty:1,unit:'oz'},{name:'Simple Syrup',qty:0.75,unit:'oz'},
+          {name:'Egg White',qty:0.5,unit:'oz'},{name:'Cherry',qty:1,unit:'pc'}
+        ]
+      },
+      {id:'r4',name:'Long Island Iced Tea',
+        alcoholicIngredients:[
+          {spiritId:'sl2',name:'Vodka',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl1',name:'Tequila',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl5',name:'Rum',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'sl4',name:'Gin',qty:0.5,unit:'oz',bottleSize:750},
+          {spiritId:'',name:'Triple Sec',qty:0.5,unit:'oz',bottleSize:750}
+        ],
+        mixersGarnishes:[
+          {name:'Sour Mix',qty:1,unit:'oz'},{name:'Cola',qty:2,unit:'oz'},
+          {name:'Lemon Wedge',qty:1,unit:'pc'}
+        ]
+      }
+    ],
+    staticCosts:[
+      {id:'sc1',name:'Plastic Cups',costPerGuest:0.50},
+      {id:'sc2',name:'Paper Straws',costPerGuest:0.15},
+      {id:'sc3',name:'Napkins',costPerGuest:0.10},
+      {id:'sc4',name:'Ice (per guest)',costPerGuest:0.75}
+    ],
+    expenseCategories:['Alcohol & Beverages','Mixers & Garnish','Labor & Staff',
+      'Equipment Rental','Event Setup & Rentals','Venue Fees','Marketing & Sales',
+      'Tools & Bar Equipment','Licenses & Insurance','Other'],
+    staffRoles:['Event Manager','Head Bartender','Bartender','Barback','Junior Bartender','Sales & Client Manager'],
+    eventTypes:['Birthday Party','Wedding','Corporate Event','Festival / Large Event',
+      'Cocktail Bar Service','Private Party','Cash Bar Service','Other']
+  };
+  DB.settings = fresh;
+  saveDB();
+  renderSettings ? renderSettings() : null;
+  showTab('settings');
+  toast('Settings reset to defaults. Your data is untouched.');
+}
+
 function exportData(){
   const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);
