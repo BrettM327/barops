@@ -1645,7 +1645,101 @@ function closeClientPDF(){
   const el=document.getElementById('client-pdf-preview');
   el.style.display='none';
 }
-function printClientPDF(){window.print();}
+function printClientPDF(){
+  const content = document.getElementById('client-pdf-content').innerHTML;
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><title>Event Proposal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Georgia',serif;background:#fff;color:#111;}
+      @media print{
+        body{margin:0;}
+        @page{margin:0;}
+        tr{page-break-inside:avoid;}
+        div{page-break-inside:avoid;}
+      }
+    </style>
+  </head><body>${content}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>win.print(),600);
+}
+
+
+// ================================================================
+// UNIT CONVERSION — shoppable quantities
+// ================================================================
+function convertToShoppable(qty, unit){
+  const q = parseFloat(qty) || 0;
+  if(q === 0) return {display:'0', raw:'', note:''};
+
+  switch(unit){
+    case 'oz': {
+      // Suggest standard bottle/container sizes
+      if(q <= 1) return {display:'1 small bottle', raw:`(${q} oz)`, note:''};
+      if(q <= 8)  return {display:`1 × 8 oz bottle`, raw:`(need ${q.toFixed(1)} oz)`, note:''};
+      if(q <= 16) return {display:`1 × 16 oz bottle`, raw:`(need ${q.toFixed(1)} oz)`, note:''};
+      if(q <= 32) return {display:`1 × 32 oz bottle`, raw:`(need ${q.toFixed(1)} oz)`, note:''};
+      if(q <= 33.8) return {display:`1 × 1 liter bottle`, raw:`(need ${q.toFixed(1)} oz)`, note:''};
+      // More than 1 liter — suggest multiple 1L or 32oz
+      const liters = Math.ceil(q / 33.8);
+      const bottles32 = Math.ceil(q / 32);
+      if(liters <= bottles32){
+        return {display:`${liters} × 1 liter bottle${liters>1?'s':''}`, raw:`(${q.toFixed(1)} oz total)`, note:''};
+      } else {
+        return {display:`${bottles32} × 32 oz bottle${bottles32>1?'s':''}`, raw:`(${q.toFixed(1)} oz total)`, note:''};
+      }
+    }
+    case 'ml': {
+      const liters = Math.ceil(q / 1000);
+      if(q <= 250) return {display:'1 × 250ml bottle', raw:`(need ${q.toFixed(0)} ml)`, note:''};
+      if(q <= 500) return {display:'1 × 500ml bottle', raw:`(need ${q.toFixed(0)} ml)`, note:''};
+      if(q <= 1000) return {display:'1 × 1 liter bottle', raw:`(need ${q.toFixed(0)} ml)`, note:''};
+      return {display:`${liters} × 1 liter bottle${liters>1?'s':''}`, raw:`(${q.toFixed(0)} ml total)`, note:''};
+    }
+    case 'g': {
+      if(q <= 100)  return {display:'1 small container', raw:`(${q.toFixed(0)} g)`, note:''};
+      if(q <= 500)  return {display:'1 × 500g container', raw:`(need ${q.toFixed(0)} g)`, note:''};
+      const kg = (q/1000).toFixed(2);
+      const containers = Math.ceil(q/500);
+      return {display:`${containers} × 500g container${containers>1?'s':''}`, raw:`(${q.toFixed(0)} g / ${kg} kg total)`, note:''};
+    }
+    case 'pc':
+    case 'pcs': {
+      const n = Math.ceil(q);
+      // Common pack sizes
+      if(n <= 10)   return {display:`${n} pieces`, raw:'', note:''};
+      if(n <= 25)   return {display:`1 pack of 25`, raw:`(need ${n})`, note:''};
+      if(n <= 50)   return {display:`1 pack of 50`, raw:`(need ${n})`, note:''};
+      if(n <= 100)  return {display:`1 pack of 100`, raw:`(need ${n})`, note:''};
+      const packs = Math.ceil(n/100);
+      return {display:`${packs} × 100-pack${packs>1?'s':''}`, raw:`(need ${n} total)`, note:''};
+    }
+    case 'tsp': {
+      if(q <= 3)    return {display:`${q.toFixed(1)} tsp`, raw:'', note:''};
+      const tbsp = (q/3).toFixed(1);
+      if(q <= 48)   return {display:`${tbsp} tbsp`, raw:`(${q.toFixed(1)} tsp)`, note:''};
+      const cups = (q/48).toFixed(2);
+      return {display:`${cups} cup${parseFloat(cups)>1?'s':''}`, raw:`(${q.toFixed(1)} tsp)`, note:''};
+    }
+    case 'tbsp': {
+      if(q <= 4)    return {display:`${q.toFixed(1)} tbsp`, raw:'', note:''};
+      const cups = (q/16).toFixed(2);
+      return {display:`${cups} cup${parseFloat(cups)>1?'s':''}`, raw:`(${q.toFixed(1)} tbsp)`, note:''};
+    }
+    case 'cup': {
+      const n = Math.ceil(q*10)/10;
+      return {display:`${n} cup${n>1?'s':''}`, raw:'', note:''};
+    }
+    case 'dash':
+    case 'drop': {
+      return {display:`${Math.ceil(q)} ${unit}s`, raw:'', note:''};
+    }
+    default:
+      return {display:`${q%1===0?q:q.toFixed(1)} ${unit}`, raw:'', note:''};
+  }
+}
 
 // ================================================================
 // CLIENT SHOPPING LIST PDF
@@ -1692,16 +1786,18 @@ function generateClientPDF(){
     (recipe.alcoholicIngredients||[]).filter(ai=>!ai.spiritId).forEach(ai=>addA(ai.name,ai.qty,ai.unit,n));
   });
   const mixerItems=Object.values(agg);
-  const mixerLines=mixerItems.map(it=>`<tr>
-    <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;">
-      <span style="font-size:15px;font-weight:600;color:#1a1a1a;">${it.name}</span>
-      <span style="font-size:13px;color:#888;margin-left:8px;font-family:'DM Sans',sans-serif;">total needed</span>
-    </td>
-    <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;text-align:right;white-space:nowrap;">
-      <span style="font-size:20px;font-weight:700;color:#c8a96e;font-family:'DM Mono',monospace;">${fmtQ(it.qty)}</span>
-      <span style="font-size:13px;color:#888;margin-left:4px;font-weight:600;">${it.unit}</span>
-    </td>
-  </tr>`).join('');
+  const mixerLines=mixerItems.map(it=>{
+    const conv=convertToShoppable(it.qty,it.unit);
+    return`<tr>
+      <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;">
+        <span style="font-size:15px;font-weight:600;color:#1a1a1a;">${it.name}</span>
+      </td>
+      <td style="padding:12px 16px;border-bottom:1px solid #f0ede8;text-align:right;">
+        <div style="font-size:15px;font-weight:700;color:#1a1a1a;font-family:'DM Sans',sans-serif;">${conv.display}</div>
+        ${conv.raw?`<div style="font-size:11px;color:#aaa;margin-top:2px;font-family:'DM Mono',monospace;">${conv.raw}</div>`:''}
+      </td>
+    </tr>`;
+  }).join('');
 
   // --- STATIC ITEMS ---
   const staticLines=(st.staticRows||[]).map(r=>`<tr>
@@ -1738,8 +1834,11 @@ function generateClientPDF(){
       @media print {
         body * { visibility: hidden; }
         #client-pdf-content, #client-pdf-content * { visibility: visible; }
-        #client-pdf-content { position: absolute; left: 0; top: 0; width: 100%; border-radius: 0; }
+        #client-pdf-content { position: absolute; left: 0; top: 0; width: 100%; border-radius: 0; max-height: none !important; overflow: visible !important; }
         #client-pdf-actions { display: none !important; }
+        #client-pdf-preview { overflow: visible !important; max-height: none !important; }
+        tr { page-break-inside: avoid; }
+        .pdf-section-break { page-break-before: auto; }
       }
       #client-pdf-content { font-family: 'Georgia', serif; }
       #client-pdf-content * { box-sizing: border-box; }
