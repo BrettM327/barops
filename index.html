@@ -293,11 +293,11 @@ select option{background:var(--surface2);}
       <!-- STATIC EVENT COSTS (per guest) -->
       <div class="form-section" id="cs-calc-static">
         <div class="form-section-header" onclick="toggleSection('cs-calc-static')">
-          <span class="form-section-title">Static Event Costs (per guest)</span>
+          <span class="form-section-title">Static Event Costs (per drink)</span>
           <span class="form-section-chevron">▾</span>
         </div>
         <div class="form-section-inner">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Each item cost × total guests. Add/edit items in Settings.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Each item cost × total drinks served (guests × pace × hours). Add/edit items in Settings.</div>
         <div id="static-costs-calc"></div>
         </div>
       </div>
@@ -412,6 +412,20 @@ select option{background:var(--surface2);}
     <div><div class="page-title">Settings &amp; Hard Values</div><div class="page-subtitle">These power all auto-calculations in the Event Calculator</div></div>
     <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
   </div>
+
+  <!-- STORAGE NOTICE -->
+  <div style="background:rgba(200,169,110,.06);border:1px solid rgba(200,169,110,.18);border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;">
+    <span style="font-size:16px;flex-shrink:0;margin-top:1px;">💾</span>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:3px;">Your data is saved locally in this browser</div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+        Settings, recipes, and all data are stored in your browser's local storage — not in the cloud. 
+        If you clear your browser cache or switch devices, your data will be lost.
+        <strong style="color:var(--text);">Before clearing your cache, use ⬇ Export Backup</strong> in the top bar to save your data, 
+        then <strong style="color:var(--text);">⬆ Import Backup</strong> to restore it afterward.
+      </div>
+    </div>
+  </div>
   <div class="settings-grid">
 
     <div class="form-section" id="cs-s-biz">
@@ -494,12 +508,12 @@ select option{background:var(--surface2);}
     <!-- STATIC EVENT COSTS -->
     <div class="form-section" id="cs-s-static" style="grid-column:1/-1;">
       <div class="form-section-header" onclick="toggleSection('cs-s-static')">
-        <span class="form-section-title">🥤 Static Per-Guest Costs (cups, ice, straws, etc.)</span>
+        <span class="form-section-title">🥤 Static Per-Drink Costs (cups, straws, napkins, etc.)</span>
         <span class="form-section-chevron">▾</span>
       </div>
       <div class="form-section-inner">
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-        Enter a cost per guest for each static item. In the Event Calculator these multiply by total guest count automatically.
+        Enter a cost per drink for each item. In the Event Calculator these multiply by total drinks served (guests × pace × hours).
       </div>
       <div id="static-costs-list"></div>
       <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="addStaticCost()">+ Add Item</button>
@@ -734,9 +748,7 @@ const APP_PASSWORD = 'bartenderops2024';
 const UNLOCK_KEY = 'barops_unlocked';
 
 function initLockScreen(){
-  if(sessionStorage.getItem(UNLOCK_KEY) === 'yes'){
-    document.getElementById('lock-screen').classList.add('unlocked');
-  }
+  // Always require password on every visit — no session persistence
   setTimeout(()=>{ const el=document.getElementById('lock-password'); if(el)el.focus(); },100);
 }
 
@@ -819,10 +831,10 @@ let DB = {
       }
     ],
     staticCosts:[
-      {id:'sc1',name:'Plastic Cups',costPerGuest:0.50},
-      {id:'sc2',name:'Paper Straws',costPerGuest:0.15},
-      {id:'sc3',name:'Napkins',costPerGuest:0.10},
-      {id:'sc4',name:'Ice (per guest)',costPerGuest:0.75}
+      {id:'sc1',name:'Plastic Cups',costPerDrink:0.50},
+      {id:'sc2',name:'Paper Straws',costPerDrink:0.15},
+      {id:'sc3',name:'Napkins',costPerDrink:0.10},
+      {id:'sc4',name:'Ice',costPerDrink:0.25}
     ],
     expenseCategories:['Alcohol & Beverages','Mixers & Garnish','Labor & Staff',
       'Equipment Rental','Event Setup & Rentals','Venue Fees','Marketing & Sales',
@@ -949,6 +961,15 @@ function loadDB(){
         if(DB.settings.recipes){
           DB.settings.recipes=DB.settings.recipes.map(migrateRecipe);
         }
+        // Migrate costPerGuest -> costPerDrink for static costs
+        if(DB.settings.staticCosts){
+          DB.settings.staticCosts=DB.settings.staticCosts.map(sc=>{
+            if(sc.costPerGuest!==undefined && sc.costPerDrink===undefined){
+              return{...sc,costPerDrink:sc.costPerGuest};
+            }
+            return sc;
+          });
+        }
         // Ensure ingredientLibrary exists
         if(!DB.settings.ingredientLibrary){
           DB.settings.ingredientLibrary=[
@@ -1044,10 +1065,10 @@ function resetSettings(){
       }
     ],
     staticCosts:[
-      {id:'sc1',name:'Plastic Cups',costPerGuest:0.50},
-      {id:'sc2',name:'Paper Straws',costPerGuest:0.15},
-      {id:'sc3',name:'Napkins',costPerGuest:0.10},
-      {id:'sc4',name:'Ice (per guest)',costPerGuest:0.75}
+      {id:'sc1',name:'Plastic Cups',costPerDrink:0.50},
+      {id:'sc2',name:'Paper Straws',costPerDrink:0.15},
+      {id:'sc3',name:'Napkins',costPerDrink:0.10},
+      {id:'sc4',name:'Ice',costPerDrink:0.25}
     ],
     expenseCategories:['Alcohol & Beverages','Mixers & Garnish','Labor & Staff',
       'Equipment Rental','Event Setup & Rentals','Venue Fees','Marketing & Sales',
@@ -1375,13 +1396,15 @@ function recalc(){
     mixerCostRows.push({...item,costPerUnit:cpu,cost});
   });
 
-  // Static costs
+  // Static costs — per drink × total adult drinks (pace × hours × adults)
   const totalGuests=adults+kids;
+  const totalDrinks=Math.ceil(totalAdultDrinks);
   let staticTotal=0;
   const staticRows=(DB.settings.staticCosts||[]).map(sc=>{
-    const cost=sc.costPerGuest*totalGuests;staticTotal+=cost;return{...sc,cost};
+    const rate=sc.costPerDrink||sc.costPerGuest||0; // fallback for old data
+    const cost=rate*totalDrinks;staticTotal+=cost;return{...sc,cost,rate};
   });
-  renderStaticCostsCalc(staticRows,totalGuests);
+  renderStaticCostsCalc(staticRows,totalGuests,totalDrinks);
 
   const laborCost=calcLabor.reduce((s,l)=>s+l.hours*l.rate,0);
   const totalCost=totalBottleCost+mixerGarnishCost+staticTotal+laborCost;
@@ -1481,13 +1504,13 @@ function renderShoppingList(calcMenuRows,recipes,lib,totalAdultDrinks){
   </div>`;
 }
 
-function renderStaticCostsCalc(staticRows,totalGuests){
+function renderStaticCostsCalc(staticRows,totalGuests,totalDrinks){
   const el=document.getElementById('static-costs-calc');
   if(!staticRows.length){el.innerHTML=`<div style="color:var(--text-muted);font-size:13px;">Add static cost items in Settings.</div>`;return;}
   const total=staticRows.reduce((s,r)=>s+r.cost,0);
   el.innerHTML=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;">
     ${staticRows.map(r=>`<div class="shop-item">
-      <span style="font-size:13px;">${r.name} <span style="color:var(--text-muted);font-size:11px;">(${fc(r.costPerGuest)}/guest × ${totalGuests})</span></span>
+      <span style="font-size:13px;">${r.name} <span style="color:var(--text-muted);font-size:11px;">(${fc(r.rate)}/drink × ${totalDrinks||0} drinks)</span></span>
       <span class="shop-qty">${fc(r.cost)}</span>
     </div>`).join('')}
     <div class="shop-item" style="font-weight:600;border-top:1px solid var(--border);margin-top:4px;padding-top:8px;">
@@ -1555,7 +1578,7 @@ function generatePDF(){
   const shopItems=Object.values(agg2);
   const fmtQ=q=>q%1===0?q:q.toFixed(1);
   const shopRows=shopItems.map(it=>`<tr><td>${it.name}</td><td><strong>${fmtQ(it.qty)} ${it.unit}</strong></td></tr>`).join('');
-  const staticPdfRows=(st.staticRows||[]).map(r=>`<tr><td>${r.name}</td><td>${fc(r.costPerGuest)}/guest</td><td>${fc(r.cost)}</td></tr>`).join('');
+  const staticPdfRows=(st.staticRows||[]).map(r=>`<tr><td>${r.name}</td><td>${fc(r.rate)}/drink</td><td>${fc(r.cost)}</td></tr>`).join('');
   const laborRows=(calcLabor.length?calcLabor:[]).map(l=>`<tr><td>${l.role}</td><td>${l.hours}h @ $${l.rate}/hr</td><td>${fc(l.hours*l.rate)}</td></tr>`).join('');
 
   document.getElementById('pdf-content').innerHTML=`
@@ -1587,7 +1610,7 @@ function generatePDF(){
     ${shopItems.length?`<div class="pdf-section"><h2>Shopping List — Mixers &amp; Garnishes</h2>
       <table><thead><tr><th>Ingredient</th><th>Total Needed</th></tr></thead><tbody>${shopRows}</tbody></table>
     </div>`:''}
-    ${(st.staticRows||[]).length?`<div class="pdf-section"><h2>Static Per-Guest Costs</h2>
+    ${(st.staticRows||[]).length?`<div class="pdf-section"><h2>Static Per-Drink Costs</h2>
       <table><thead><tr><th>Item</th><th>Per Guest</th><th>Total (${st.totalGuests||0} guests)</th></tr></thead><tbody>${staticPdfRows}</tbody></table>
     </div>`:''}
     ${calcLabor.length?`<div class="pdf-section"><h2>Labor</h2>
@@ -2127,17 +2150,17 @@ function renderSettings(){
     <div style="display:grid;grid-template-columns:1fr 80px 100px auto;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Ingredient Name</div>
-        <input type="text" value="${il.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].name=this.value"/>
+        <input type="text" value="${il.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].name=this.value;autoSave()"/>
       </div>
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Unit</div>
-        <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;width:100%;font-size:12px;" onchange="DB.settings.ingredientLibrary[${i}].unit=this.value">
+        <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;width:100%;font-size:12px;" onchange="DB.settings.ingredientLibrary[${i}].unit=this.value;autoSave()">
           ${['oz','ml','pc','g','tsp','tbsp','cup','dash','drop'].map(u=>`<option value="${u}" ${u===il.unit?'selected':''}>${u}</option>`).join('')}
         </select>
       </div>
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">$ per unit</div>
-        <input type="number" value="${il.costPerUnit}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].costPerUnit=parseFloat(this.value)||0"/>
+        <input type="number" value="${il.costPerUnit}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;font-size:13px;" oninput="DB.settings.ingredientLibrary[${i}].costPerUnit=parseFloat(this.value)||0;autoSave()"/>
       </div>
       <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="DB.settings.ingredientLibrary.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('') || '<div style="color:var(--text-muted);font-size:13px;">No ingredients yet. Add your first one above.</div>';
@@ -2147,11 +2170,11 @@ function renderSettings(){
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:1fr 80px auto auto;gap:8px;align-items:center;">
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Spirit Name</div>
-        <input type="text" value="${sp.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.spiritsLibrary[${i}].name=this.value"/>
+        <input type="text" value="${sp.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.spiritsLibrary[${i}].name=this.value;autoSave()"/>
       </div>
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">oz/serving</div>
-        <input type="number" value="${sp.oz}" min="0.5" step="0.25" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.spiritsLibrary[${i}].oz=parseFloat(this.value)||2"/>
+        <input type="number" value="${sp.oz}" min="0.5" step="0.25" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.spiritsLibrary[${i}].oz=parseFloat(this.value)||2;autoSave()"/>
       </div>
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Bottle Sizes</div>
@@ -2179,7 +2202,7 @@ function renderSettings(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div style="flex:1;margin-right:12px;">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Cocktail Name</div>
-          <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;width:100%;font-size:14px;font-weight:600;" oninput="DB.settings.recipes[${ri}].name=this.value;document.querySelector('#cs-recipe-${r.id} .form-section-title').textContent=this.value||'New Cocktail'"/>
+          <input type="text" value="${r.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;width:100%;font-size:14px;font-weight:600;" oninput="DB.settings.recipes[${ri}].name=this.value;document.querySelector('#cs-recipe-${r.id} .form-section-title').textContent=this.value||'New Cocktail';autoSave()"/>
         </div>
         <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes.splice(${ri},1);renderSettings()">Remove Recipe</button>
       </div>
@@ -2191,19 +2214,19 @@ function renderSettings(){
         <div style="display:grid;grid-template-columns:140px 1fr 70px 80px 120px auto;gap:6px;margin-bottom:6px;align-items:center;">
           <div>
             <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Library Spirit</div>
-            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].spiritId=this.value">
+            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].spiritId=this.value;autoSave()">
               <option value="">— none —</option>
               ${(s.spiritsLibrary||[]).map(sp=>`<option value="${sp.id}" ${sp.id===ai.spiritId?'selected':''}>${sp.name}</option>`).join('')}
             </select>
           </div>
-          <input type="text" value="${ai.name}" placeholder="Ingredient label" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].name=this.value"/>
-          <input type="number" value="${ai.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].qty=parseFloat(this.value)||0"/>
-          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].unit=this.value">
+          <input type="text" value="${ai.name}" placeholder="Ingredient label" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].name=this.value;autoSave()"/>
+          <input type="number" value="${ai.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].qty=parseFloat(this.value)||0;autoSave()"/>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].unit=this.value;autoSave()">
             ${UNITS.map(u=>`<option ${u===ai.unit?'selected':''}>${u}</option>`).join('')}
           </select>
           <div>
             <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Bottle Size</div>
-            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].bottleSize=parseInt(this.value)">
+            <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;width:100%;font-size:12px;" onchange="DB.settings.recipes[${ri}].alcoholicIngredients[${ii}].bottleSize=parseInt(this.value);autoSave()">
               <option value="750" ${(ai.bottleSize||750)===750?'selected':''}>750ml</option>
               <option value="1000" ${ai.bottleSize===1000?'selected':''}>1L</option>
               <option value="1750" ${ai.bottleSize===1750?'selected':''}>1.75L Handle</option>
@@ -2218,9 +2241,9 @@ function renderSettings(){
       <div style="font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">🍋 Mixers &amp; Garnishes</div>
       ${(r.mixersGarnishes||[]).map((mg,mi)=>`
         <div style="display:grid;grid-template-columns:1fr 70px 100px auto;gap:6px;margin-bottom:6px;align-items:center;">
-          <input type="text" value="${mg.name}" placeholder="Ingredient name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].name=this.value"/>
-          <input type="number" value="${mg.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].qty=parseFloat(this.value)||0"/>
-          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].unit=this.value">
+          <input type="text" value="${mg.name}" placeholder="Ingredient name" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].name=this.value;autoSave()"/>
+          <input type="number" value="${mg.qty}" min="0" step="0.25" placeholder="Qty" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;text-align:center;font-size:13px;" oninput="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].qty=parseFloat(this.value)||0;autoSave()"/>
+          <select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:13px;" onchange="DB.settings.recipes[${ri}].mixersGarnishes[${mi}].unit=this.value;autoSave()">
             ${UNITS.map(u=>`<option ${u===mg.unit?'selected':''}>${u}</option>`).join('')}
           </select>
           <button class="btn btn-danger btn-sm" onclick="DB.settings.recipes[${ri}].mixersGarnishes.splice(${mi},1);renderSettings()">✕</button>
@@ -2234,11 +2257,11 @@ function renderSettings(){
     <div style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
       <div>
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">Item Name</div>
-        <input type="text" value="${sc.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.staticCosts[${i}].name=this.value"/>
+        <input type="text" value="${sc.name}" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;" oninput="DB.settings.staticCosts[${i}].name=this.value;autoSave()"/>
       </div>
       <div>
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">$ per guest</div>
-        <input type="number" value="${sc.costPerGuest}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.staticCosts[${i}].costPerGuest=parseFloat(this.value)||0"/>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;">$ per drink</div>
+        <input type="number" value="${sc.costPerDrink||sc.costPerGuest||0}" min="0" step="0.01" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%;text-align:center;" oninput="DB.settings.staticCosts[${i}].costPerDrink=parseFloat(this.value)||0;autoSave()"/>
       </div>
       <button class="btn btn-danger btn-sm" style="margin-top:16px;" onclick="DB.settings.staticCosts.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
@@ -2246,21 +2269,21 @@ function renderSettings(){
   // Expense categories
   document.getElementById('expense-categories-list').innerHTML=(s.expenseCategories||[]).map((c,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${c}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.expenseCategories[${i}]=this.value"/>
+      <input type="text" value="${c}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.expenseCategories[${i}]=this.value;autoSave()"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.expenseCategories.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 
   // Staff roles
   document.getElementById('staff-roles-list').innerHTML=(s.staffRoles||[]).map((r,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${r}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.staffRoles[${i}]=this.value"/>
+      <input type="text" value="${r}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.staffRoles[${i}]=this.value;autoSave()"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.staffRoles.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
 
   // Event types
   document.getElementById('event-types-list').innerHTML=(s.eventTypes||[]).map((t,i)=>`
     <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
-      <input type="text" value="${t}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.eventTypes[${i}]=this.value"/>
+      <input type="text" value="${t}" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;" oninput="DB.settings.eventTypes[${i}]=this.value;autoSave()"/>
       <button class="btn btn-danger btn-sm" onclick="DB.settings.eventTypes.splice(${i},1);renderSettings()">✕</button>
     </div>`).join('');
   setTimeout(()=>{ applyCollapseState(); applyCollapseStateRecipes(); }, 0);
@@ -2284,10 +2307,25 @@ function addRecipe(){
   });
   renderSettings();
 }
-function addStaticCost(){DB.settings.staticCosts.push({id:uid(),name:'New Item',costPerGuest:0.25});renderSettings();}
+function addStaticCost(){DB.settings.staticCosts.push({id:uid(),name:'New Item',costPerDrink:0.25});renderSettings();}
 function addExpenseCategory(){DB.settings.expenseCategories.push('New Category');renderSettings();}
 function addStaffRole(){DB.settings.staffRoles.push('New Role');renderSettings();}
 function addEventType(){DB.settings.eventTypes.push('New Type');renderSettings();}
+
+let _autoSaveTimer=null;
+function autoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(()=>{
+    DB.settings.bizName=document.getElementById('s-biz-name')?.value||DB.settings.bizName;
+    DB.settings.ownerName=document.getElementById('s-owner-name')?.value||DB.settings.ownerName;
+    DB.settings.phone=document.getElementById('s-phone')?.value||DB.settings.phone;
+    DB.settings.email=document.getElementById('s-email')?.value||DB.settings.email;
+    DB.settings.priceAdult=parseFloat(document.getElementById('s-price-adult')?.value)||DB.settings.priceAdult;
+    DB.settings.priceKid=parseFloat(document.getElementById('s-price-kid')?.value)||DB.settings.priceKid;
+    DB.settings.revenueTarget=parseFloat(document.getElementById('s-rev-target')?.value)||DB.settings.revenueTarget;
+    saveDB();
+  },600);
+}
 
 function saveSettings(){
   DB.settings.bizName=document.getElementById('s-biz-name').value;
@@ -2297,7 +2335,7 @@ function saveSettings(){
   DB.settings.priceAdult=parseFloat(document.getElementById('s-price-adult').value)||35;
   DB.settings.priceKid=parseFloat(document.getElementById('s-price-kid').value)||15;
   DB.settings.revenueTarget=parseFloat(document.getElementById('s-rev-target').value)||100000;
-  saveDB();toast('All settings saved!');
+  saveDB();toast('Settings saved!');
 }
 
 
