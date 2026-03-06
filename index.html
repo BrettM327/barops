@@ -1647,23 +1647,21 @@ function closeClientPDF(){
 }
 function printClientPDF(){
   const content = document.getElementById('client-pdf-content').innerHTML;
-  const win = window.open('','_blank','width=900,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><title>Event Proposal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  const fullHtml = `<!DOCTYPE html><html><head><title>Event Proposal</title>
     <style>
       *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:'Georgia',serif;background:#fff;color:#111;}
+      body{font-family:Georgia,serif;background:#fff;color:#111;line-height:1.6;}
       @media print{
         body{margin:0;}
-        @page{margin:0;}
+        @page{margin:15mm;}
         tr{page-break-inside:avoid;}
-        div{page-break-inside:avoid;}
       }
     </style>
-  </head><body>${content}</body></html>`);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>win.print(),600);
+  </head><body>${content}</body></html>`;
+  const blob = new Blob([fullHtml], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url,'_blank');
+  win.onload = () => { win.print(); URL.revokeObjectURL(url); };
 }
 
 
@@ -1897,12 +1895,7 @@ function generateClientPDF(){
       <table style="width:100%;border-collapse:collapse;">${spiritLines}</table>
     </div>`:''}
 
-    <!-- MIXERS & GARNISHES — no costs on client PDF -->
-    ${mixerLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers &amp; Garnishes — Shopping List</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">Total quantities needed for your event — calculated per drink across all guests</div>
-      <table style="width:100%;border-collapse:collapse;">${mixerLines}</table>
-    </div>`:''}
+    <!-- MIXERS & GARNISHES — removed from client PDF, handled by bar service -->
 
     <!-- STATIC ITEMS — quantities only, no costs -->
     ${staticLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
