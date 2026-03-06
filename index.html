@@ -147,7 +147,21 @@ select option{background:var(--surface2);}
 #pdf-content .profit-box{background:#f0faf5;border-radius:8px;padding:14px;margin-top:14px;}
 #pdf-content .profit-num{font-size:26px;font-weight:700;color:#2d7a56;}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-@media print{body *{visibility:hidden;}#pdf-content,#pdf-content *{visibility:visible;}#pdf-content{position:absolute;left:0;top:0;width:100%;}#pdf-preview-actions{display:none!important;}}
+@media print{
+  body *{visibility:hidden;}
+  /* Internal PDF */
+  #pdf-preview,#pdf-preview *{visibility:visible;}
+  #pdf-preview{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:auto!important;overflow:visible!important;background:white!important;padding:0!important;}
+  #pdf-content{position:relative!important;max-width:100%!important;border-radius:0!important;max-height:none!important;overflow:visible!important;}
+  #pdf-preview-actions{display:none!important;}
+  /* Client PDF */
+  #client-pdf-preview,#client-pdf-preview *{visibility:visible;}
+  #client-pdf-preview{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:auto!important;overflow:visible!important;background:white!important;padding:0!important;}
+  #client-pdf-content{position:relative!important;max-width:100%!important;border-radius:0!important;max-height:none!important;overflow:visible!important;}
+  #client-pdf-actions{display:none!important;}
+  @page{margin:12mm;}
+  tr{page-break-inside:avoid;}
+}
 /* SECTION LABEL */
 .section-label{font-family:'Playfair Display',serif;font-size:18px;margin:20px 0 10px;}
 /* PACE BUTTONS */
@@ -1646,22 +1660,7 @@ function closeClientPDF(){
   el.style.display='none';
 }
 function printClientPDF(){
-  const content = document.getElementById('client-pdf-content').innerHTML;
-  const fullHtml = `<!DOCTYPE html><html><head><title>Event Proposal</title>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:Georgia,serif;background:#fff;color:#111;line-height:1.6;}
-      @media print{
-        body{margin:0;}
-        @page{margin:15mm;}
-        tr{page-break-inside:avoid;}
-      }
-    </style>
-  </head><body>${content}</body></html>`;
-  const blob = new Blob([fullHtml], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const win = window.open(url,'_blank');
-  win.onload = () => { win.print(); URL.revokeObjectURL(url); };
+  window.print();
 }
 
 
@@ -1895,7 +1894,12 @@ function generateClientPDF(){
       <table style="width:100%;border-collapse:collapse;">${spiritLines}</table>
     </div>`:''}
 
-    <!-- MIXERS & GARNISHES — removed from client PDF, handled by bar service -->
+    <!-- MIXERS & GARNISHES — shown as included, no quantities -->
+    ${mixerLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8a96e;margin-bottom:4px;font-family:'DM Sans',sans-serif;">Mixers, Garnishes &amp; Supplies</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:'DM Sans',sans-serif;">All mixers, garnishes, cups, ice, and bar supplies are included in your service.</div>
+      <table style="width:100%;border-collapse:collapse;">${mixerLines}</table>
+    </div>`:''}
 
     <!-- STATIC ITEMS — quantities only, no costs -->
     ${staticLines?`<div style="padding:28px 48px 0;border-bottom:1px solid #eee;">
